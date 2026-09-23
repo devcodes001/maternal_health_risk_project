@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}Clinic Visits — MaternalCare AI{% endblock %}
+{% block content %}
+<div class="page-header fade-up">
+  <h1>🏥 Clinic Visit Summaries</h1>
+  <p>Record what happened at each antenatal visit — even when clinic access is difficult.</p>
+</div>
+
+<div class="grid-2 fade-up fade-up-1" style="align-items:start;">
+  <!-- Add visit form -->
+  <div class="card" style="position:sticky;top:24px;">
+    <div class="card-title">📝 Add Clinic Visit Record</div>
+    <form method="POST" action="{{ url_for('clinic_visits') }}">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group"><label>Visit Date *</label><input name="date" type="date" class="form-control" value="{{ '' }}" required></div>
+        <div class="form-group"><label>Pregnancy Week</label><input name="pregnancy_week" type="number" class="form-control" placeholder="{{ pregnancy_week or '' }}" value="{{ pregnancy_week or '' }}"></div>
+        <div class="form-group"><label>Doctor's Name</label><input name="doctor_name" type="text" class="form-control" placeholder="Dr. Anita Rao"></div>
+        <div class="form-group"><label>Hospital / Clinic</label><input name="hospital" type="text" class="form-control" placeholder="City Hospital"></div>
+      </div>
+
+      <div class="section-sep" style="margin:14px 0 10px;">📏 Measurements Taken</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group"><label>Weight (kg)</label><input name="weight_kg" type="number" step="0.1" class="form-control" placeholder="62.5"></div>
+        <div class="form-group"><label>BP (Systolic)</label><input name="bp_systolic" type="number" class="form-control" placeholder="118"></div>
+        <div class="form-group"><label>BP (Diastolic)</label><input name="bp_diastolic" type="number" class="form-control" placeholder="78"></div>
+        <div class="form-group"><label>Hemoglobin (g/dL)</label><input name="hemoglobin" type="number" step="0.1" class="form-control" placeholder="11.5"></div>
+        <div class="form-group"><label>Fetal Heart Rate (bpm)</label><input name="fetal_heart_rate" type="number" class="form-control" placeholder="145"></div>
+        <div class="form-group"><label>Fundal Height (cm)</label><input name="fundal_height" type="number" step="0.5" class="form-control" placeholder="24"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group"><label>Urine Protein</label>
+          <select name="urine_protein" class="form-control">
+            <option value="negative">Negative</option><option value="trace">Trace</option>
+            <option value="+1">+1</option><option value="+2">+2</option><option value="+3">+3</option>
+          </select></div>
+        <div class="form-group"><label>Baby Position</label>
+          <select name="baby_position" class="form-control">
+            <option value="">Not checked</option><option value="cephalic">Cephalic (Head down)</option>
+            <option value="breech">Breech</option><option value="transverse">Transverse</option><option value="oblique">Oblique</option>
+          </select></div>
+      </div>
+
+      <div class="section-sep" style="margin:14px 0 10px;">📋 Notes</div>
+      <div class="form-group"><label>Doctor's Notes / Advice</label><textarea name="doctor_notes" class="form-control" placeholder="What did the doctor say? Any instructions given…"></textarea></div>
+      <div class="form-group"><label>Your Concerns (that you discussed)</label><textarea name="patient_concerns" class="form-control" placeholder="Questions you asked, issues you raised…"></textarea></div>
+      <div class="form-group"><label>Prescriptions / Medicines Prescribed</label><textarea name="prescriptions" class="form-control" style="min-height:60px;" placeholder="e.g. Iron 60mg OD, Calcium 500mg BD…"></textarea></div>
+      <div class="form-group"><label>Next Visit Date</label><input name="next_visit_date" type="date" class="form-control"></div>
+      <button type="submit" class="btn btn-primary w-full">💾 Save Visit Record</button>
+    </form>
+  </div>
+
+  <!-- Visit history -->
+  <div>
+    {% if visits %}
+      {% for v in visits %}
+      <div class="card fade-up" style="margin-bottom:16px;">
+        <div class="flex justify-between items-center" style="margin-bottom:14px;">
+          <div>
+            <div style="font-size:16px;font-weight:700;">🏥 Visit — {{ v.date }}</div>
+            {% if v.pregnancy_week %}<div style="font-size:12px;color:var(--text-muted);">Week {{ v.pregnancy_week }} of pregnancy</div>{% endif %}
+          </div>
+          {% if v.next_visit_date %}
+          <div style="text-align:right;font-size:12px;padding:6px 12px;background:rgba(102,126,234,0.1);border-radius:8px;border:1px solid rgba(102,126,234,0.2);">
+            Next visit<br><strong>{{ v.next_visit_date }}</strong>
+          </div>
+          {% endif %}
+        </div>
+
+        {% if v.doctor_name or v.hospital %}
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">
+          {% if v.doctor_name %}👩‍⚕️ {{ v.doctor_name }}{% endif %}
+          {% if v.hospital %} · 🏥 {{ v.hospital }}{% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Measurements grid -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;">
+          {% for label,val,unit,icon in [
+            ('Weight',v.weight_kg,'kg','⚖️'),('BP','%s/%s'%(v.bp_systolic|int if v.bp_systolic else '?', v.bp_diastolic|int if v.bp_diastolic else '?'),'mmHg','🩺'),
+            ('Hemoglobin',v.hemoglobin,'g/dL','🩸'),('Fetal HR',v.fetal_heart_rate,'bpm','💓'),
+            ('Fundal Ht',v.fundal_height,'cm','📏'),('Urine Prot',v.urine_protein,'','💧')] %}
+          {% if val %}
+          <div style="background:var(--glass);border-radius:8px;padding:10px;border:1px solid var(--border);">
+            <div style="font-size:10px;color:var(--text-muted);">{{ icon }} {{ label }}</div>
+            <div style="font-size:14px;font-weight:600;">{{ val }} <span style="font-size:10px;color:var(--text-muted);">{{ unit }}</span></div>
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+
+        {% if v.baby_position %}<div style="font-size:13px;margin-bottom:10px;">👶 Baby position: <strong>{{ v.baby_position|title }}</strong></div>{% endif %}
+
+        {% if v.doctor_notes %}
+        <div style="padding:12px;background:rgba(102,126,234,0.06);border-radius:8px;margin-bottom:8px;border-left:3px solid var(--blue);">
+          <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:4px;">DOCTOR'S NOTES</div>
+          <div style="font-size:13px;line-height:1.6;">{{ v.doctor_notes }}</div>
+        </div>
+        {% endif %}
+        {% if v.patient_concerns %}
+        <div style="padding:12px;background:rgba(240,147,251,0.06);border-radius:8px;margin-bottom:8px;border-left:3px solid var(--pink);">
+          <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:4px;">YOUR CONCERNS</div>
+          <div style="font-size:13px;line-height:1.6;">{{ v.patient_concerns }}</div>
+        </div>
+        {% endif %}
+        {% if v.prescriptions %}
+        <div style="padding:12px;background:rgba(67,233,123,0.06);border-radius:8px;border-left:3px solid var(--green);">
+          <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:4px;">💊 PRESCRIPTIONS</div>
+          <div style="font-size:13px;line-height:1.6;">{{ v.prescriptions }}</div>
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    {% else %}
+    <div class="card">
+      <div class="empty-state">
+        <div class="empty-icon">🏥</div>
+        <div style="font-size:16px;font-weight:600;margin-bottom:8px;">No Clinic Visits Yet</div>
+        <div style="font-size:13px;color:var(--text-muted);">After each antenatal visit, record what happened here.<br>Build a complete history of your pregnancy care.</div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+document.querySelector('input[name="date"]').value = new Date().toISOString().split('T')[0];
+</script>
+{% endblock %}

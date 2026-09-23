@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>{% block title %}MaternalCare AI{% endblock %}</title>
+  <meta name="description" content="AI-powered maternal health tracking platform.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  {% block head %}{% endblock %}
+</head>
+<body>
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <span class="logo-icon">🤱</span>
+    <span class="logo-text">MaternalCare AI</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="{{ url_for('dashboard') }}"     class="nav-link {% if request.endpoint=='dashboard'    %}active{% endif %}"><span class="nav-icon">🏠</span>Dashboard</a></li>
+    <li><a href="{{ url_for('assessment') }}"    class="nav-link {% if request.endpoint=='assessment'   %}active{% endif %}"><span class="nav-icon">🔬</span>Self Analysis</a></li>
+    <li><a href="{{ url_for('calendar') }}"      class="nav-link {% if request.endpoint=='calendar'     %}active{% endif %}"><span class="nav-icon">📅</span>Checkup Calendar</a></li>
+    <li><a href="{{ url_for('clinic_visits') }}" class="nav-link {% if request.endpoint=='clinic_visits'%}active{% endif %}"><span class="nav-icon">🏥</span>Clinic Visits</a></li>
+    <li><a href="{{ url_for('journal') }}"       class="nav-link {% if request.endpoint=='journal'      %}active{% endif %}"><span class="nav-icon">📖</span>Pregnancy Journal</a></li>
+    <li><a href="{{ url_for('wellness') }}"      class="nav-link {% if request.endpoint=='wellness'     %}active{% endif %}"><span class="nav-icon">💧</span>Wellness Hub</a></li>
+    <li><a href="{{ url_for('medications') }}"   class="nav-link {% if request.endpoint=='medications'  %}active{% endif %}"><span class="nav-icon">💊</span>Medications</a></li>
+    <li><a href="{{ url_for('guide') }}"         class="nav-link {% if request.endpoint=='guide'        %}active{% endif %}"><span class="nav-icon">💡</span>Wellness Guide</a></li>
+    <li><a href="{{ url_for('report') }}"        class="nav-link {% if request.endpoint=='report'       %}active{% endif %}"><span class="nav-icon">📊</span>My Report</a></li>
+  </ul>
+  {% if session.patient_name %}
+  <div class="sidebar-patient">
+    <div class="patient-avatar">{{ session.patient_name[0]|upper }}</div>
+    <div class="patient-info">
+      <span class="patient-name">{{ session.patient_name }}</span>
+      <span class="patient-week">{% if session.lmp_date %}Pregnancy tracking active{% else %}No LMP set{% endif %}</span>
+    </div>
+  </div>
+  {% endif %}
+</nav>
+<main class="main-content">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for cat,msg in messages %}<div class="alert alert-{{ cat }}">{{ msg }}</div>{% endfor %}{% endif %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</main>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

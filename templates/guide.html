@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% block title %}Wellness Guide — MaternalCare AI{% endblock %}
+{% block content %}
+<div class="page-header fade-up">
+  <h1>💡 Wellness Guide</h1>
+  <p>Evidence-based advice tailored to your risk level.</p>
+</div>
+
+{% if current_risk %}
+<div class="card fade-up fade-up-1" style="margin-bottom:20px;background:{% if current_risk.startswith('high') %}rgba(245,87,108,0.08){% elif current_risk.startswith('mid') %}rgba(247,151,30,0.08){% else %}rgba(67,233,123,0.08){% endif %};border-color:{% if current_risk.startswith('high') %}rgba(245,87,108,0.3){% elif current_risk.startswith('mid') %}rgba(247,151,30,0.3){% else %}rgba(67,233,123,0.3){% endif %};">
+  <div class="flex items-center gap-12">
+    <span style="font-size:28px;">{% if current_risk.startswith('high') %}🔴{% elif current_risk.startswith('mid') %}🟡{% else %}🟢{% endif %}</span>
+    <div>
+      <div style="font-size:13px;color:var(--text-muted);">Your Latest Risk Level</div>
+      <div style="font-size:18px;font-weight:700;">{{ current_risk|title }}</div>
+    </div>
+    <div style="margin-left:auto;font-size:13px;color:var(--text-muted);">Guide is tailored to your current assessment</div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Tab bar -->
+<div class="tab-bar fade-up fade-up-1">
+  <button class="tab-btn {% if not current_risk or current_risk.startswith('low') %}active{% endif %}" onclick="showTab('low',this)">🟢 Low Risk</button>
+  <button class="tab-btn {% if current_risk and current_risk.startswith('mid') %}active{% endif %}" onclick="showTab('mid',this)">🟡 Mid Risk</button>
+  <button class="tab-btn {% if current_risk and current_risk.startswith('high') %}active{% endif %}" onclick="showTab('high',this)">🔴 High Risk</button>
+  <button class="tab-btn" onclick="showTab('general',this)">📚 General Tips</button>
+</div>
+
+<!-- ── LOW RISK ──────────────────────────────────────── -->
+<div id="tab-low" class="tab-panel {% if not current_risk or current_risk.startswith('low') %}active{% endif %}">
+  <div class="grid-2">
+    <div class="card">
+      <div class="guide-section-title">🥗 Nutrition</div>
+      {% for item in [
+        ('Folic Acid (400–800 mcg/day)', 'Prevents neural tube defects. Found in leafy greens, legumes, fortified cereals.'),
+        ('Iron-rich foods', 'Spinach, lentils, lean red meat. Pair with Vitamin C for better absorption.'),
+        ('Calcium & Vitamin D', '3 servings of dairy or fortified alternatives daily. Sunlight exposure.'),
+        ('Omega-3 Fatty Acids', 'Salmon, walnuts, flaxseeds — support baby brain development.'),
+        ('Stay hydrated', 'Aim for 8–10 glasses of water per day. Limit caffeine to <200 mg/day.'),
+      ] %}
+      <div class="guide-item"><div class="guide-item-icon">🌿</div><div class="guide-item-text"><strong>{{ item[0] }}</strong>{{ item[1] }}</div></div>
+      {% endfor %}
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:16px;">
+        <div class="guide-section-title">🏃 Exercise</div>
+        {% for item in [
+          ('30 min moderate walking daily','Safe and highly recommended throughout all trimesters.'),
+          ('Prenatal yoga','Reduces stress, improves flexibility and sleep quality.'),
+          ('Swimming / water aerobics','Low-impact, great for relieving joint pressure.'),
+          ('Kegel exercises','Strengthen pelvic floor muscles for easier delivery.'),
+        ] %}
+        <div class="guide-item"><div class="guide-item-icon">💪</div><div class="guide-item-text"><strong>{{ item[0] }}</strong>{{ item[1] }}</div></div>
+        {% endfor %}
+      </div>
+      <div class="card">
+        <div class="guide-section-title">📋 Routine Monitoring</div>
+        {% for item in [
+          ('Monthly checkups (weeks 1–28)','Every 4 weeks with your OB/GYN.'),
+          ('Bi-weekly checkups (weeks 28–36)','Increased frequency as you near third trimester.'),
+          ('Weekly checkups (weeks 36–40)','Final month monitoring.'),
+          ('Track fetal movements daily','After 28 weeks, count 10 kicks in 2 hours.'),
+        ] %}
+        <div class="guide-item"><div class="guide-item-icon">📅</div><div class="guide-item-text"><strong>{{ item[0] }}</strong>{{ item[1] }}</div></div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── MID RISK ──────────────────────────────────────── -->
+<div id="tab-mid" class="tab-panel {% if current_risk and current_risk.startswith('mid') %}active{% endif %}">
+  <div style="padding:14px 18px;background:rgba(247,151,30,0.1);border:1px solid rgba(247,151,30,0.3);border-radius:12px;margin-bottom:20px;font-size:14px;color:rgba(247,151,30,0.9);font-weight:500;">
+    ⚠️ Your vitals show borderline readings. Follow these steps consistently and schedule a doctor visit within this week.
+  </div>
+  <div class="grid-2">
+    <div>
+      <div class="card" style="margin-bottom:16px;">
+        <div class="guide-section-title">🩺 Immediate Actions</div>
+        {% for item in [
+          ('Monitor BP twice daily at home','Morning and evening. Log readings in your journal. Target: below 140/90 mmHg.'),
+          ('Reduce sodium intake drastically','Aim for less than 2.3g sodium/day. Avoid processed foods, pickles, papad.'),
+          ('Visit your doctor within 3–5 days','Do not wait for your next scheduled appointment.'),
+          ('Complete bed rest if BP elevated','Lie on your LEFT side — it improves blood flow to the placenta.'),
+          ('Track fetal movements every day','If baby kicks fewer than 10 times in 2 hours, call your doctor immediately.'),
+        ] %}
+        <div class="guide-item"><div class="guide-item-icon">✅</div><div class="guide-item-text"><strong>{{ item[0] }}</strong>{{ item[1] }}</div></div>
+        {% endfor %}
+      </div>
+      <div class="card">
+        <div class="guide-section-title">🥗 Diet Modifications</div>
+        {% for item in [
+          ('DASH diet approach','Fruits, vegetables, whole grains, low-fat dairy. Proven to reduce hypertension.'),
+          ('Increase potassium','Bananas, sweet potatoes, coconut water, tomatoes — help regulate blood pressure.'),
+          ('Control blood sugar','Small, frequent meals every 2–3 hours. Avoid refined sugar and white rice.'),
+          ('Iron + Vitamin C combo','Lemon juice with iron-rich foods to boost absorption.'),
+          ('Avoid spicy and oily food','Can aggravate heartburn and gestational hypertension.'),
+        ] %}
+        <div class="guide-item"><div class="guide-item-icon">🌿</div><div class="guide-item-text"><strong>{{ item[0] }}</strong>{{ item[1] }}</div></div>
+        {% endfor %}
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:16px;">
+        <div class="guide-section-title">🧘 Safe Exercise</div>
+        {% for item in [
+          ('Gentle walking (20 min, flat surface)','Improves circulation. Avoid uphill walking or steps if BP is high.'),
+          ('Prenatal yoga (gentle poses only)','Focus on breathing and relaxation. Avoid inversions completely.'),
+          ('Deep breathing exercises','4 counts inhale, hold 4, exhale 6. Reduces stress and lowers BP naturally.'),
+          ('Avoid high-intensity activity','No jogging, jumping, contact sports, or heavy lifting.'),
+          ('Swimming (if cleared by doctor)','Particularly good — water pressure reduces ankle swelling.'),
+        ] %}
+        <div class="guide-item"><div class="guide-item-icon">🏊</div><div class="guide-item-text"><strong>{{ item[0] }}</strong>{{ item[1] }}</div></div>
+        {% endfor %}
+      </div>
+      <div class="card">
+        <div class="guide-section-title">😌 Stress & Lifestyle</div>
+        {% for item in [
+          ('Sleep on your left side','Improves kidney function and reduces swelling. Use a pregnancy pillow.'),
+          ('Elevate feet when sitting','Reduces fluid buildup and ankle swelling.'),
+          ('Limit screen time before bed','Blue light disrupts sleep. Sleep is critical for fetal development.'),
+          ('Practice mindfulness meditation','Even 10 minutes daily can significantly reduce cortisol levels.'),
+          ('Join a prenatal support group','Emotional support reduces anxiety and improves outcomes.'),
+        ] %}
+        <div class="guide-item"><div class="guide-item-icon">💆</div><div class="guide-item-text"><strong>{{ item[0] }}</strong>{{ item[1] }}</div></div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  <!-- Warning signs -->
+  <div class="card" style="margin-top:16px;border-color:rgba(245,87,108,0.3);">
+    <div class="guide-section-title" style="color:var(--red);">🚨 Seek Emergency Care Immediately If You Notice:</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      {% for warn in ['Severe persistent headache','Sudden vision changes or blurring','Sudden swelling of face, hands or feet','Severe abdominal / epigastric pain','Reduced or no fetal movement for 12 hours','Vaginal bleeding (any amount)','Severe shortness of breath','BP above 160/110 at any reading'] %}
+      <div class="guide-item warning-item"><div class="guide-item-icon">⚠️</div><div class="guide-item-text">{{ warn }}</div></div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- ── HIGH RISK ─────────────────────────────────────── -->
+<div id="tab-high" class="tab-panel {% if current_risk and current_risk.startswith('high') %}active{% endif %}">
+  <div style="padding:16px 20px;background:rgba(245,87,108,0.12);border:1px solid rgba(245,87,108,0.4);border-radius:12px;margin-bottom:20px;font-size:15px;color:rgba(245,87,108,0.95);font-weight:600;">
+    🚨 HIGH RISK DETECTED — Please contact your doctor or go to the hospital today. Do not delay.
+  </div>
+  <div class="grid-2">
+    <div class="card" style="border-color:rgba(245,87,108,0.3);">
+      <div class="guide-section-title" style="color:var(--red);">🏥 Critical Steps</div>
+      {% for item in [
+        ('Go to hospital today','High-risk readings require in-person evaluation. Do not manage alone at home.'),
+        ('Call your OB/GYN immediately','Inform them of your readings before going to the hospital.'),
+        ('Complete bed rest on left side','Avoid all physical exertion until assessed by a doctor.'),
+        ('No self-medication','Do not take any BP or sugar medication without prescription.'),
+        ('Bring your reading log','Your BP and journal history helps doctors make faster decisions.'),
+      ] %}
+      <div class="guide-item warning-item"><div class="guide-item-icon">🏥</div><div class="guide-item-text"><strong>{{ item[0] }}</strong>{{ item[1] }}</div></div>
+      {% endfor %}
+    </div>
+    <div class="card" style="border-color:rgba(245,87,108,0.3);">
+      <div class="guide-section-title" style="color:var(--red);">🚨 Emergency Warning Signs — Call 108/112 Now</div>
+      {% for warn in ['BP above 160/110','Severe headache not relieved by rest','Loss of vision / flashing lights','Convulsions or loss of consciousness','No fetal movement for over 12 hours','Heavy vaginal bleeding','Severe chest pain','Signs of preterm labour before 37 weeks'] %}
+      <div class="guide-item warning-item"><div class="guide-item-icon">🔴</div><div class="guide-item-text">{{ warn }}</div></div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- ── GENERAL ────────────────────────────────────────── -->
+<div id="tab-general" class="tab-panel">
+  <div class="grid-2">
+    <div class="card">
+      <div class="guide-section-title">📅 Trimester Guide</div>
+      {% for tri in [('1st (Weeks 1–13)','Start prenatal vitamins. Avoid alcohol, smoking, raw fish. First ultrasound. Morning sickness is normal.'),
+                     ('2nd (Weeks 14–27)','Anatomy scan at 20 weeks. Baby movements begin. Best trimester for exercise and travel.'),
+                     ('3rd (Weeks 28–40)','Weekly checkups after week 36. Prepare birth plan. Monitor BP and fetal movements closely.')] %}
+      <div class="guide-item"><div class="guide-item-icon">📆</div><div class="guide-item-text"><strong>{{ tri[0] }}</strong>{{ tri[1] }}</div></div>
+      {% endfor %}
+    </div>
+    <div class="card">
+      <div class="guide-section-title">💊 Supplements</div>
+      {% for s in [('Folic Acid (400–800 mcg)','First 12 weeks are critical — prevents neural tube defects.'),
+                   ('Iron (27 mg/day)','Prevents anaemia. Common in Indian women. Take with Vitamin C.'),
+                   ('Calcium (1000 mg/day)','For bone development. Take separately from iron.'),
+                   ('Vitamin D (600 IU)','Essential for calcium absorption. Sun exposure helps.'),
+                   ('DHA / Omega-3','Brain and eye development of baby.')] %}
+      <div class="guide-item"><div class="guide-item-icon">💊</div><div class="guide-item-text"><strong>{{ s[0] }}</strong>{{ s[1] }}</div></div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(name, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% block title %}Medications — MaternalCare AI{% endblock %}
+{% block content %}
+<div class="page-header fade-up">
+  <h1>💊 Medication Tracker</h1>
+  <p>Track all your prenatal supplements and medicines. The app reminds you when it's time.</p>
+</div>
+
+<div class="grid-2 fade-up fade-up-1" style="align-items:start;">
+  <!-- Add medication -->
+  <div class="card">
+    <div class="card-title">➕ Add Medication / Supplement</div>
+    <form id="addMedForm">
+      <div class="form-group"><label>Medication Name *</label><input id="medName" type="text" class="form-control" placeholder="e.g. Folic Acid, Iron tablets, Calcit" required></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group"><label>Dosage</label><input id="medDosage" type="text" class="form-control" placeholder="e.g. 5mg, 1 tablet"></div>
+        <div class="form-group"><label>Purpose</label><input id="medPurpose" type="text" class="form-control" placeholder="e.g. Anaemia prevention"></div>
+      </div>
+      <div class="form-group"><label>Frequency</label>
+        <select id="medFreq" class="form-control" onchange="updateTimeslots()">
+          <option value="once_daily">Once Daily</option><option value="twice_daily">Twice Daily</option>
+          <option value="thrice_daily">Thrice Daily</option><option value="as_needed">As Needed</option>
+        </select></div>
+      <div class="form-group">
+        <label>Reminder Time(s)</label>
+        <div id="timeSlots" style="display:flex;flex-wrap:wrap;gap:8px;">
+          <input type="time" class="form-control time-slot" value="08:00" style="width:120px;">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group"><label>Start Date</label><input id="medStart" type="date" class="form-control"></div>
+        <div class="form-group"><label>End Date</label><input id="medEnd" type="date" class="form-control"></div>
+      </div>
+      <div class="form-group"><label>Colour Label</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;" id="colorPicker">
+          {% for col,name in [('#667eea','Blue'),('#43e97b','Green'),('#f093fb','Pink'),('#f7971e','Orange'),('#f5576c','Red'),('#38f9d7','Teal'),('#ffd200','Yellow')] %}
+          <div onclick="selectColor('{{ col }}',this)" style="width:28px;height:28px;border-radius:50%;background:{{ col }};cursor:pointer;border:2px solid transparent;" title="{{ name }}"></div>
+          {% endfor %}
+        </div></div>
+      <div class="form-group"><label>Notes</label><textarea id="medNotes" class="form-control" style="min-height:60px;" placeholder="Doctor's instructions…"></textarea></div>
+      <button type="submit" class="btn btn-primary w-full">💊 Add Medication</button>
+    </form>
+  </div>
+
+  <!-- Today's medication schedule -->
+  <div>
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title">📋 Today's Schedule</div>
+      {% if today_logs %}
+        {% for log in today_logs %}
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);">
+          <div style="width:12px;height:12px;border-radius:50%;background:{{ log.color }};flex-shrink:0;"></div>
+          <div style="flex:1;">
+            <div style="font-size:14px;font-weight:600;">{{ log.name }}</div>
+            <div style="font-size:12px;color:var(--text-muted);">{{ log.scheduled_time or 'As needed' }}</div>
+          </div>
+          {% if log.taken %}
+          <span style="color:var(--green);font-size:20px;">✅</span>
+          {% else %}
+          <button onclick="markTaken({{ log.medication_id }},'{{ log.scheduled_time }}')" class="btn btn-ghost btn-sm">Mark Taken</button>
+          {% endif %}
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty-state" style="padding:20px;"><div class="empty-icon" style="font-size:36px;">💊</div>Add medications to see today's schedule.</div>
+      {% endif %}
+    </div>
+
+    <!-- Active medications list -->
+    <div class="card">
+      <div class="card-title">💊 All Medications</div>
+      {% if medications %}
+        {% for med in medications %}
+        <div style="display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--border);">
+          <div style="width:40px;height:40px;border-radius:10px;background:{{ med.color }}22;border:2px solid {{ med.color }};display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">💊</div>
+          <div style="flex:1;">
+            <div style="font-size:14px;font-weight:600;{% if not med.is_active %}opacity:0.5;text-decoration:line-through;{% endif %}">{{ med.name }}</div>
+            <div style="font-size:12px;color:var(--text-muted);">{{ med.dosage }} · {{ med.frequency.replace('_',' ')|title }}</div>
+            {% if med.purpose %}<div style="font-size:11px;color:var(--text-muted);">{{ med.purpose }}</div>{% endif %}
+            {% if med.end_date %}<div style="font-size:11px;color:var(--text-muted);">Until: {{ med.end_date }}</div>{% endif %}
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
+            <button onclick="toggleMed({{ med.id }})" class="btn btn-ghost btn-sm">{{ '▶ Resume' if not med.is_active else '⏸ Pause' }}</button>
+            <button onclick="deleteMed({{ med.id }})" class="btn btn-ghost btn-sm" style="color:var(--red);">🗑 Remove</button>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty-state"><div class="empty-icon">💊</div>No medications added yet.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Common prenatal supplements reference -->
+<div class="card fade-up fade-up-2" style="margin-top:20px;">
+  <div class="card-title">📚 Common Prenatal Supplements (Reference)</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-top:8px;">
+    {% for sup in [('Folic Acid','400–800 mcg/day','Prevents neural tube defects','#43e97b'),
+                   ('Iron','27–60 mg/day','Prevents anaemia','#f5576c'),
+                   ('Calcium','1000 mg/day','Bone development','#667eea'),
+                   ('Vitamin D','600–1000 IU/day','Calcium absorption','#f7971e'),
+                   ('Omega-3/DHA','200–300 mg/day','Brain development','#38f9d7'),
+                   ('Vitamin B12','2.6 mcg/day','Neurological health','#f093fb')] %}
+    <div style="padding:14px;background:var(--glass);border:1px solid {{ sup[3] }}33;border-radius:10px;border-left:4px solid {{ sup[3] }};">
+      <div style="font-size:13px;font-weight:600;margin-bottom:4px;">{{ sup[0] }}</div>
+      <div style="font-size:12px;color:{{ sup[3] }};margin-bottom:4px;">{{ sup[1] }}</div>
+      <div style="font-size:12px;color:var(--text-muted);">{{ sup[2] }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<script>
+let selectedColor = '#667eea';
+document.getElementById('medStart').value = new Date().toISOString().split('T')[0];
+
+function selectColor(col, el){
+  selectedColor = col;
+  document.querySelectorAll('#colorPicker div').forEach(d=>d.style.border='2px solid transparent');
+  el.style.border='3px solid #fff';
+}
+
+function updateTimeslots(){
+  const freq = document.getElementById('medFreq').value;
+  const map = {once_daily:['08:00'], twice_daily:['08:00','20:00'], thrice_daily:['08:00','14:00','20:00'], as_needed:['08:00']};
+  const times = map[freq] || ['08:00'];
+  const box = document.getElementById('timeSlots');
+  box.innerHTML = times.map(t=>`<input type="time" class="form-control time-slot" value="${t}" style="width:120px;">`).join('');
+}
+
+document.getElementById('addMedForm').addEventListener('submit', async function(e){
+  e.preventDefault();
+  const times = [...document.querySelectorAll('.time-slot')].map(i=>i.value);
+  const body = {
+    name: document.getElementById('medName').value,
+    dosage: document.getElementById('medDosage').value,
+    frequency: document.getElementById('medFreq').value,
+    times, purpose: document.getElementById('medPurpose').value,
+    start_date: document.getElementById('medStart').value,
+    end_date: document.getElementById('medEnd').value,
+    color: selectedColor,
+    notes: document.getElementById('medNotes').value,
+  };
+  await fetch('/api/medications',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  location.reload();
+});
+
+async function markTaken(medId, time){
+  await fetch('/api/med-log',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({medication_id:medId,scheduled_time:time})});
+  location.reload();
+}
+async function toggleMed(id){ await fetch('/api/medications?id='+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({toggle:true})}); location.reload(); }
+async function deleteMed(id){ if(!confirm('Remove this medication?'))return; await fetch('/api/medications?id='+id,{method:'DELETE'}); location.reload(); }
+
+// Medication reminder via browser notifications
+const meds = {{ medications_json|safe }};
+function scheduleMedReminders(){
+  if(!('Notification' in window)||Notification.permission!=='granted') return;
+  meds.filter(m=>m.is_active).forEach(med=>{
+    try{
+      const times = JSON.parse(med.times||'[]');
+      times.forEach(t=>{
+        const [h,mi]=t.split(':').map(Number);
+        const now=new Date(); const next=new Date();
+        next.setHours(h,mi,0,0);
+        if(next<=now) return;
+        const delay=next-now;
+        setTimeout(()=>{ new Notification('MaternalCare AI — Medication Reminder',{body:`Time to take ${med.name} (${med.dosage})`}); },delay);
+      });
+    }catch(e){}
+  });
+}
+if(Notification.permission==='granted') scheduleMedReminders();
+</script>
+{% endblock %}

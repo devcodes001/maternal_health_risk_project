@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+{% block title %}Wellness Hub — MaternalCare AI{% endblock %}
+{% block content %}
+<div class="page-header fade-up">
+  <h1>💧 Wellness Hub</h1>
+  <p>Track water intake, daily meals, and physical activity — all in one place.</p>
+</div>
+
+<!-- Top row: Water + Activity summary -->
+<div class="grid-3 fade-up fade-up-1" style="margin-bottom:20px;">
+  <!-- Water tracker -->
+  <div class="card" style="border-color:rgba(102,126,234,0.3);grid-column:span 1;">
+    <div class="card-title">💧 Water Intake Today</div>
+    {% set cups = water.cups_consumed if water else 0 %}
+    {% set goal = water.goal_cups if water else 8 %}
+    {% set pct = [cups/goal*100,100]|min|int %}
+    <div style="text-align:center;padding:12px 0;">
+      <div style="font-size:48px;font-weight:800;color:var(--blue);">{{ cups }}<span style="font-size:20px;color:var(--text-muted);">/{{ goal }}</span></div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">glasses consumed</div>
+      <div class="progress-wrap" style="margin-bottom:14px;"><div class="progress-fill low" style="width:{{ pct }}%;background:linear-gradient(90deg,#667eea,#764ba2);"></div></div>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+        <button onclick="logWater(1)" class="btn btn-primary btn-sm">+ Glass</button>
+        <button onclick="logWater(-1)" class="btn btn-ghost btn-sm">- Glass</button>
+      </div>
+      <!-- Visual cups -->
+      <div style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin-top:14px;">
+        {% for i in range(goal) %}<span style="font-size:22px;opacity:{% if i<cups %}1{% else %}0.2{% endif %};">💧</span>{% endfor %}
+      </div>
+    </div>
+    <div id="waterReminder" style="margin-top:10px;padding:10px;background:rgba(102,126,234,0.1);border-radius:8px;font-size:12px;text-align:center;display:{% if cups<goal %}block{% else %}none{% endif %};">
+      ⏰ Reminder: Drink {{ goal-cups }} more glass{{ 'es' if goal-cups!=1 else '' }} today!
+    </div>
+  </div>
+
+  <!-- Activity today -->
+  <div class="card" style="border-color:rgba(67,233,123,0.3);">
+    <div class="card-title">🏃 Activity Today</div>
+    <div style="text-align:center;padding:12px 0;">
+      <div style="font-size:48px;font-weight:800;color:var(--green);">{{ total_activity }}<span style="font-size:16px;color:var(--text-muted);"> min</span></div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">Target: 30 min/day</div>
+      <div class="progress-wrap" style="margin-bottom:14px;">
+        <div class="progress-fill low" style="width:{{ [total_activity/30*100,100]|min|int }}%;"></div>
+      </div>
+    </div>
+    {% if activity_today %}
+      {% for a in activity_today %}
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;">
+        <span>{{ {'walking':'🚶','yoga':'🧘','swimming':'🏊','rest':'😴','exercise':'💪','stretching':'🤸'}.get(a.activity_type,'🏃') }} {{ a.activity_type|title }}</span>
+        <span style="color:var(--text-muted);">{{ a.duration_minutes }} min · {{ a.intensity }}</span>
+        <button onclick="deleteActivity({{ a.id }})" style="background:none;border:none;color:var(--text-muted);cursor:pointer;">🗑</button>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state" style="padding:12px;"><div style="font-size:28px;">🏃</div>No activity logged today</div>
+    {% endif %}
+    <button onclick="document.getElementById('activityModal').style.display='flex'" class="btn btn-ghost btn-sm w-full" style="margin-top:10px;">+ Log Activity</button>
+  </div>
+
+  <!-- Diet summary today -->
+  <div class="card" style="border-color:rgba(240,147,251,0.3);">
+    <div class="card-title">🥗 Meals Today</div>
+    {% set meal_counts = {} %}
+    {% for d in diet_today %}{% set _ = meal_counts.update({d.meal_type: meal_counts.get(d.meal_type,0)+1}) %}{% endfor %}
+    {% for meal,icon in [('breakfast','🌅'),('lunch','☀️'),('dinner','🌙'),('snack','🍎')] %}
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+      <span style="font-size:13px;">{{ icon }} {{ meal|title }}</span>
+      {% if meal_counts.get(meal,0)>0 %}
+        <span style="color:var(--green);font-size:12px;">✓ Logged</span>
+      {% else %}
+        <span style="color:var(--text-muted);font-size:12px;">Not logged</span>
+      {% endif %}
+    </div>
+    {% endfor %}
+    <button onclick="document.getElementById('dietModal').style.display='flex'" class="btn btn-ghost btn-sm w-full" style="margin-top:10px;">+ Log Meal</button>
+  </div>
+</div>
+
+<!-- Weekly Charts -->
+<div class="grid-2 fade-up fade-up-2" style="margin-bottom:20px;">
+  <div class="card">
+    <div class="card-title">📊 Water Intake — Last 7 Days</div>
+    <canvas id="waterChart" height="120"></canvas>
+  </div>
+  <div class="card">
+    <div class="card-title">📊 Activity — Last 7 Days (minutes)</div>
+    <canvas id="activityChart" height="120"></canvas>
+  </div>
+</div>
+
+<!-- Diet log full list -->
+<div class="card fade-up fade-up-3">
+  <div class="card-title">🥗 Today's Food Log</div>
+  {% if diet_today %}
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:8px;">
+    {% for item in diet_today %}
+    {% set icons={'breakfast':'🌅','lunch':'☀️','dinner':'🌙','snack':'🍎'} %}
+    <div style="background:var(--glass);border:1px solid var(--border);border-radius:10px;padding:12px;position:relative;">
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">{{ icons.get(item.meal_type,'🍽️') }} {{ item.meal_type|title }} · {{ item.portion }}</div>
+      <div style="font-size:13px;font-weight:600;">{{ item.food_items }}</div>
+      {% if item.notes %}<div style="font-size:11px;color:var(--text-muted);margin-top:4px;">{{ item.notes }}</div>{% endif %}
+      <button onclick="deleteDiet({{ item.id }})" style="position:absolute;top:8px;right:8px;background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;">🗑</button>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state"><div class="empty-icon">🍽️</div>No meals logged today. Track what you eat!</div>
+  {% endif %}
+</div>
+
+<!-- Reminder banner -->
+<div class="card fade-up fade-up-4" style="margin-top:20px;background:linear-gradient(135deg,rgba(118,75,162,0.15),rgba(102,126,234,0.15));border-color:rgba(102,126,234,0.3);">
+  <div class="flex items-center justify-between" style="flex-wrap:wrap;gap:12px;">
+    <div>
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px;">🔔 Enable Movement Reminders</div>
+      <div style="font-size:13px;color:var(--text-muted);">Get browser notifications every hour to drink water & move for 5 minutes.</div>
+    </div>
+    <button onclick="enableReminders()" class="btn btn-primary" id="reminderBtn">Enable Reminders</button>
+  </div>
+</div>
+
+<!-- Activity Modal -->
+<div id="activityModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;align-items:center;justify-content:center;">
+  <div class="card" style="width:400px;max-width:90vw;">
+    <div style="font-size:16px;font-weight:700;margin-bottom:16px;">🏃 Log Activity</div>
+    <div class="form-group"><label>Activity Type</label>
+      <select id="actType" class="form-control">
+        <option value="walking">🚶 Walking</option><option value="yoga">🧘 Prenatal Yoga</option>
+        <option value="swimming">🏊 Swimming</option><option value="stretching">🤸 Stretching</option>
+        <option value="rest">😴 Rest</option><option value="exercise">💪 Exercise</option>
+      </select></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="form-group"><label>Duration (min)</label><input id="actDuration" type="number" class="form-control" value="30" min="1"></div>
+      <div class="form-group"><label>Intensity</label>
+        <select id="actIntensity" class="form-control"><option value="light">Light</option><option value="moderate">Moderate</option></select></div>
+    </div>
+    <div class="form-group"><label>Steps (optional)</label><input id="actSteps" type="number" class="form-control" placeholder="3000"></div>
+    <div class="flex gap-8">
+      <button onclick="saveActivity()" class="btn btn-primary" style="flex:1;">Save</button>
+      <button onclick="document.getElementById('activityModal').style.display='none'" class="btn btn-ghost" style="flex:1;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Diet Modal -->
+<div id="dietModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;align-items:center;justify-content:center;">
+  <div class="card" style="width:400px;max-width:90vw;">
+    <div style="font-size:16px;font-weight:700;margin-bottom:16px;">🥗 Log Meal</div>
+    <div class="form-group"><label>Meal Type</label>
+      <select id="mealType" class="form-control">
+        <option value="breakfast">🌅 Breakfast</option><option value="lunch">☀️ Lunch</option>
+        <option value="dinner">🌙 Dinner</option><option value="snack">🍎 Snack</option>
+      </select></div>
+    <div class="form-group"><label>Food Items *</label><input id="foodItems" type="text" class="form-control" placeholder="e.g. Rice, dal, vegetables, curd"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="form-group"><label>Portion</label>
+        <select id="mealPortion" class="form-control"><option value="small">Small</option><option value="medium" selected>Medium</option><option value="large">Large</option></select></div>
+      <div class="form-group"><label>Notes</label><input id="mealNotes" type="text" class="form-control" placeholder="Optional"></div>
+    </div>
+    <div class="flex gap-8">
+      <button onclick="saveDiet()" class="btn btn-primary" style="flex:1;">Save</button>
+      <button onclick="document.getElementById('dietModal').style.display='none'" class="btn btn-ghost" style="flex:1;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const waterWeekData = {{ water_week|safe }};
+const activityWeekData = {{ activity_week|safe }};
+
+function getLast7Days(){
+  const days=[];
+  for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push(d.toISOString().split('T')[0]);}
+  return days;
+}
+const days=getLast7Days();
+const labels=days.map(d=>d.slice(5));
+
+// Water chart
+new Chart(document.getElementById('waterChart'),{
+  type:'bar',
+  data:{labels,datasets:[{label:'Glasses',data:days.map(d=>{const r=waterWeekData.find(w=>w.date===d);return r?r.cups_consumed:0;}),
+    backgroundColor:'rgba(102,126,234,0.5)',borderColor:'rgba(102,126,234,1)',borderWidth:2,borderRadius:6}]},
+  options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:10,ticks:{color:'#8892a4'}},x:{ticks:{color:'#8892a4'}}}}
+});
+
+// Activity chart
+new Chart(document.getElementById('activityChart'),{
+  type:'bar',
+  data:{labels,datasets:[{label:'Minutes',data:days.map(d=>{const r=activityWeekData.find(a=>a.date===d);return r?r.mins:0;}),
+    backgroundColor:'rgba(67,233,123,0.5)',borderColor:'rgba(67,233,123,1)',borderWidth:2,borderRadius:6}]},
+  options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{color:'#8892a4'}},x:{ticks:{color:'#8892a4'}}}}
+});
+
+async function logWater(cups){
+  await fetch('/api/water',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cups:Math.abs(cups),action:cups>0?'add':'remove'})});
+  location.reload();
+}
+async function saveActivity(){
+  const body={activity_type:document.getElementById('actType').value,duration_minutes:parseInt(document.getElementById('actDuration').value),
+    intensity:document.getElementById('actIntensity').value,steps:parseInt(document.getElementById('actSteps').value)||0};
+  await fetch('/api/activity',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  location.reload();
+}
+async function deleteDiet(id){ if(!confirm('Remove this entry?'))return; await fetch('/api/diet?id='+id,{method:'DELETE'}); location.reload(); }
+async function deleteActivity(id){ if(!confirm('Remove?'))return; await fetch('/api/activity?id='+id,{method:'DELETE'}); location.reload(); }
+async function saveDiet(){
+  const fi=document.getElementById('foodItems').value.trim();
+  if(!fi){alert('Please enter food items');return;}
+  const body={meal_type:document.getElementById('mealType').value,food_items:fi,portion:document.getElementById('mealPortion').value,notes:document.getElementById('mealNotes').value};
+  await fetch('/api/diet',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  location.reload();
+}
+function enableReminders(){
+  if(!('Notification' in window)){alert('Browser notifications not supported');return;}
+  Notification.requestPermission().then(p=>{
+    if(p==='granted'){
+      setInterval(()=>{ new Notification('MaternalCare AI',{body:'Time to drink a glass of water and take a 5-minute walk!',icon:'/static/icon.png'}); },3600000);
+      document.getElementById('reminderBtn').textContent='Reminders Active!';
+      document.getElementById('reminderBtn').style.background='linear-gradient(135deg,#43e97b,#38f9d7)';
+      document.getElementById('reminderBtn').style.color='#000';
+    }
+  });
+}
+</script>
+{% endblock %}

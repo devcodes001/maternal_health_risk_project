@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block title %}Pregnancy Journal — MaternalCare AI{% endblock %}
+{% block content %}
+<div class="page-header fade-up">
+  <h1>📖 Pregnancy Journal</h1>
+  <p>Track every milestone, feeling, and baby movement throughout your journey.</p>
+</div>
+
+<div class="grid-2 fade-up fade-up-1" style="align-items:start;">
+  <!-- New Entry Form -->
+  <div class="card" style="position:sticky;top:24px;">
+    <div class="card-title">✍️ New Entry</div>
+
+    <div class="form-group">
+      <label>Entry Date</label>
+      <input type="date" id="entryDate" class="form-control" value="{{ ('' if not pregnancy_week else '') }}">
+    </div>
+
+    {% if pregnancy_week is not none %}
+    <div style="padding:10px 14px;background:rgba(102,126,234,0.1);border-radius:10px;border:1px solid rgba(102,126,234,0.2);font-size:13px;margin-bottom:14px;">
+      📅 Currently: <strong>Week {{ pregnancy_week }}, Day {{ pregnancy_day }}</strong>
+    </div>
+    {% endif %}
+
+    <div class="form-group">
+      <label>Title</label>
+      <input type="text" id="entryTitle" class="form-control" placeholder="e.g. Baby kicked for the first time! 🥰">
+    </div>
+
+    <div class="form-group">
+      <label>How are you feeling today? *</label>
+      <textarea id="entryContent" class="form-control" placeholder="Write anything — symptoms, emotions, baby movements, doctor visits…" style="min-height:110px;"></textarea>
+    </div>
+
+    <!-- Mood -->
+    <div class="form-group">
+      <label>Mood</label>
+      <div class="mood-chips">
+        {% for mood, emoji in [('happy','😊'),('excited','🥰'),('grateful','🙏'),('neutral','😐'),('tired','😴'),('anxious','😰'),('uncomfortable','😣'),('pain','😖')] %}
+        <div class="mood-chip" data-mood="{{ mood }}" onclick="selectMood(this)">{{ emoji }} {{ mood|title }}</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Symptoms -->
+    <div class="form-group">
+      <label>Symptoms (select all that apply)</label>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;">
+        {% for sym in ['Nausea','Vomiting','Headache','Back Pain','Swelling','Fatigue','Heartburn','Shortness of Breath','Dizziness','Cramps','Spotting','Frequent Urination','Mood Swings','Food Cravings','Insomnia'] %}
+        <div class="symptom-chip" onclick="toggleSymptom(this)">{{ sym }}</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Baby movements -->
+    <div class="form-group">
+      <label>Baby Movements / Kicks today</label>
+      <div class="flex items-center gap-12">
+        <input type="range" id="kickSlider" min="0" max="30" value="0" style="flex:1;accent-color:var(--pink);" oninput="document.getElementById('kickVal').textContent=this.value">
+        <span id="kickVal" style="font-size:16px;font-weight:700;min-width:28px;text-align:center;">0</span>
+        <span style="font-size:20px;">👶</span>
+      </div>
+    </div>
+
+    <button class="btn btn-primary w-full" onclick="submitEntry()">💾 Save Entry</button>
+  </div>
+
+  <!-- Journal Timeline -->
+  <div>
+    {% if entries %}
+    <div class="timeline">
+      {% for entry in entries %}
+      {% set mood_map = {'happy':'😊','anxious':'😰','tired':'😴','excited':'🥰','uncomfortable':'😣','neutral':'😐','grateful':'🙏','pain':'😖'} %}
+      <div class="tl-item fade-up">
+        <div class="tl-dot journal"></div>
+        <div class="tl-date">
+          {{ entry.entry_date }}
+          {% if entry.pregnancy_week is not none %}
+          &nbsp;·&nbsp; <strong>Week {{ entry.pregnancy_week }}, Day {{ entry.pregnancy_day }}</strong>
+          {% endif %}
+        </div>
+        <div class="tl-content">
+          <div class="flex justify-between items-center" style="margin-bottom:6px;">
+            <div class="tl-title">{{ mood_map.get(entry.mood,'😐') }} {{ entry.title or 'Journal Entry' }}</div>
+            <button onclick="deleteEntry({{ entry.id }})" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:16px;" title="Delete">🗑</button>
+          </div>
+          <div class="tl-body">{{ entry.content }}</div>
+          {% if entry.baby_movements and entry.baby_movements > 0 %}
+          <div style="margin-top:8px;font-size:12px;color:var(--pink);">👶 {{ entry.baby_movements }} baby movements noted</div>
+          {% endif %}
+          {% if entry.symptoms and entry.symptoms != '[]' %}
+          {% set syms = entry.symptoms | replace('[','') | replace(']','') | replace('"','') %}
+          <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;">
+            {% for sym in entry.symptoms[1:-1].replace('"','').split(',') %}
+            {% if sym.strip() %}
+            <span style="font-size:11px;padding:2px 8px;border-radius:99px;background:rgba(245,87,108,0.12);color:var(--red);border:1px solid rgba(245,87,108,0.2);">{{ sym.strip() }}</span>
+            {% endif %}
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="card">
+      <div class="empty-state">
+        <div class="empty-icon">📝</div>
+        <div style="font-size:16px;font-weight:600;margin-bottom:8px;">Start Your Journey</div>
+        <div>Use the form on the left to write your first entry.<br>Track your feelings, symptoms, and baby's movements!</div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+let selectedMood = 'neutral';
+let selectedSymptoms = [];
+
+// Set today as default
+document.getElementById('entryDate').value = new Date().toISOString().split('T')[0];
+
+function selectMood(el) {
+  document.querySelectorAll('.mood-chip').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedMood = el.dataset.mood;
+}
+
+function toggleSymptom(el) {
+  el.classList.toggle('selected');
+  const sym = el.textContent.trim();
+  if(el.classList.contains('selected')) { selectedSymptoms.push(sym); }
+  else { selectedSymptoms = selectedSymptoms.filter(s=>s!==sym); }
+}
+
+async function submitEntry() {
+  const content = document.getElementById('entryContent').value.trim();
+  if(!content){ alert('Please write something in your journal entry.'); return; }
+  const body = {
+    entry_date:     document.getElementById('entryDate').value,
+    title:          document.getElementById('entryTitle').value,
+    content:        content,
+    mood:           selectedMood,
+    symptoms:       selectedSymptoms,
+    baby_movements: parseInt(document.getElementById('kickSlider').value) || 0,
+  };
+  const res = await fetch('/api/journal',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(res.ok) location.reload();
+  else alert('Error saving entry.');
+}
+
+async function deleteEntry(id) {
+  if(!confirm('Delete this journal entry?')) return;
+  await fetch(`/api/journal?id=${id}`,{method:'DELETE'});
+  location.reload();
+}
+</script>
+{% endblock %}

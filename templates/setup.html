@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Setup Profile — MaternalCare AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    body { display:flex; align-items:center; justify-content:center; min-height:100vh; padding:24px; }
+    .setup-wrap { width:100%; max-width:520px; }
+    .setup-hero { text-align:center; margin-bottom:32px; }
+    .setup-hero .hero-icon { font-size:56px; display:block; margin-bottom:12px; animation:float 3s ease-in-out infinite; }
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+    .setup-hero h1 { font-size:28px; font-weight:800; }
+    .setup-hero p  { color:var(--text-muted); margin-top:6px; font-size:14px; }
+    .setup-card { background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:20px; padding:32px; backdrop-filter:blur(16px); }
+    .form-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    .section-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--text-muted); margin:20px 0 12px; }
+  </style>
+</head>
+<body>
+<div class="setup-wrap fade-up">
+  <div class="setup-hero">
+    <span class="hero-icon">🤱</span>
+    <h1>Welcome to MaternalCare AI</h1>
+    <p>Let's set up your pregnancy profile to get started.</p>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for cat,msg in messages %}<div class="alert alert-{{ cat }}">{{ msg }}</div>{% endfor %}{% endif %}
+  {% endwith %}
+
+  <div class="setup-card">
+    <form method="POST" action="{{ url_for('setup') }}">
+      <div class="section-label">👤 Personal Info</div>
+      <div class="form-group">
+        <label>Full Name *</label>
+        <input type="text" name="name" class="form-control" placeholder="e.g. Priya Sharma" required>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Age</label>
+          <input type="number" name="age" class="form-control" placeholder="25" min="12" max="60">
+        </div>
+        <div class="form-group">
+          <label>Blood Group</label>
+          <select name="blood_group" class="form-control">
+            <option value="">Select</option>
+            <option>A+</option><option>A-</option>
+            <option>B+</option><option>B-</option>
+            <option>AB+</option><option>AB-</option>
+            <option>O+</option><option>O-</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Phone Number</label>
+        <input type="tel" name="phone" class="form-control" placeholder="+91 98765 43210">
+      </div>
+
+      <div class="section-label">🤰 Pregnancy Info</div>
+      <div class="form-group">
+        <label>Last Menstrual Period (LMP) Date</label>
+        <input type="date" name="lmp_date" class="form-control" id="lmpDate">
+        <div style="font-size:11px;color:var(--text-muted);margin-top:5px;">Used to calculate your current week and due date.</div>
+      </div>
+      <div id="dueDatePreview" style="display:none;padding:10px 14px;background:rgba(102,126,234,0.1);border:1px solid rgba(102,126,234,0.3);border-radius:10px;font-size:13px;margin-bottom:14px;">
+        📅 Estimated due date: <strong id="dueDateText"></strong>
+      </div>
+
+      <div class="section-label">🏥 Doctor & Hospital</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Doctor's Name</label>
+          <input type="text" name="doctor_name" class="form-control" placeholder="Dr. Anita Rao">
+        </div>
+        <div class="form-group">
+          <label>Hospital / Clinic</label>
+          <input type="text" name="hospital" class="form-control" placeholder="City Hospital">
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary w-full" style="margin-top:8px;">
+        🚀 Create My Profile
+      </button>
+    </form>
+  </div>
+</div>
+<script>
+  document.getElementById('lmpDate').addEventListener('change', function() {
+    const lmp = new Date(this.value);
+    if (isNaN(lmp)) return;
+    const due = new Date(lmp.getTime() + 280*24*60*60*1000);
+    document.getElementById('dueDateText').textContent = due.toLocaleDateString('en-IN', {year:'numeric',month:'long',day:'numeric'});
+    document.getElementById('dueDatePreview').style.display = 'block';
+  });
+</script>
+</body>
+</html>

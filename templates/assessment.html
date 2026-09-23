@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}Risk Self-Analysis — MaternalCare AI{% endblock %}
+{% block content %}
+<div class="page-header fade-up">
+  <h1>🔬 Self-Analysis Risk Check</h1>
+  <p>Answer all questions honestly. No clinic visit needed — our AI analyses your readings instantly.</p>
+</div>
+
+<div class="grid-2 fade-up fade-up-1">
+  <div class="card">
+    <div class="card-title" style="font-size:14px;margin-bottom:18px;">📋 Enter Your Current Readings</div>
+    <form method="POST">
+      <div class="section-sep">🩺 Vital Signs</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group"><label>Age (yrs)</label><input name="age" type="number" class="form-control" placeholder="28" required value="{{ result.data.age if result else '' }}"></div>
+        <div class="form-group"><label>Heart Rate (bpm)</label><input name="heartrate" type="number" class="form-control" placeholder="78" required value="{{ result.data.heartrate if result else '' }}"></div>
+        <div class="form-group"><label>Systolic BP (mmHg)</label><input name="systolic" type="number" class="form-control" placeholder="120" required value="{{ result.data.systolic if result else '' }}"></div>
+        <div class="form-group"><label>Diastolic BP (mmHg)</label><input name="diastolic" type="number" class="form-control" placeholder="80" required value="{{ result.data.diastolic if result else '' }}"></div>
+        <div class="form-group"><label>Blood Sugar (mmol/L)</label><input name="bs" type="number" step="0.1" class="form-control" placeholder="7.5" required value="{{ result.data.bs if result else '' }}"></div>
+        <div class="form-group"><label>Body Temperature (°F)</label><input name="bodytemp" type="number" step="0.1" class="form-control" placeholder="98.6" required value="{{ result.data.bodytemp if result else '' }}"></div>
+      </div>
+
+      <div class="section-sep" style="margin-top:16px;">⚖️ Body Measurements</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group"><label>Weight (kg)</label><input name="weight_kg" type="number" step="0.1" class="form-control" placeholder="62"></div>
+        <div class="form-group"><label>Height (cm)</label><input name="height_cm" type="number" class="form-control" placeholder="158"></div>
+        <div class="form-group"><label>Hemoglobin (g/dL)</label><input name="hemoglobin" type="number" step="0.1" class="form-control" placeholder="12.0"></div>
+        <div class="form-group">
+          <label>Urine Protein</label>
+          <select name="urine_protein" class="form-control">
+            <option value="0">Negative</option><option value="1">Trace</option>
+            <option value="2">+1</option><option value="3">+2</option><option value="4">+3</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="section-sep" style="margin-top:16px;">⚠️ Symptoms Check</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;">
+        {% for name,label,icon in [('swelling','Swelling in feet/hands','🦶'),('headache','Persistent headache','🤕'),('vision_change','Vision changes','👁️')] %}
+        <label style="display:flex;align-items:center;gap:8px;padding:12px;background:var(--glass);border:1px solid var(--border);border-radius:10px;cursor:pointer;">
+          <input type="checkbox" name="{{ name }}" style="accent-color:var(--pink);width:16px;height:16px;">
+          <span style="font-size:13px;">{{ icon }} {{ label }}</span>
+        </label>
+        {% endfor %}
+      </div>
+      <div class="form-group"><label>Additional Notes</label><textarea name="notes" class="form-control" placeholder="Any symptoms, concerns, or observations…"></textarea></div>
+      <button type="submit" class="btn btn-primary w-full" style="margin-top:4px;">🧠 Analyse My Risk</button>
+    </form>
+
+    <div style="margin-top:18px;padding:14px;background:rgba(102,126,234,0.06);border-radius:10px;border:1px solid rgba(102,126,234,0.15);">
+      <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:8px;">📏 Normal Ranges</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;color:var(--text-muted);">
+        <span>BP: 90–120 / 60–80 mmHg</span><span>Blood Sugar: 4–7.8 mmol/L</span>
+        <span>Heart Rate: 60–100 bpm</span><span>Hemoglobin: ≥11 g/dL</span>
+        <span>Temp: 97–99 °F</span><span>Urine Protein: Negative</span>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    {% if result %}
+    {% set rc = result.risk_level.split()[0] %}
+    {% set score = result.score %}
+    <div class="card fade-up" style="margin-bottom:16px;border-color:{% if rc=='high' %}rgba(245,87,108,0.5){% elif rc=='mid' %}rgba(247,151,30,0.5){% else %}rgba(67,233,123,0.5){% endif %};">
+      <div style="text-align:center;padding:16px 0 8px;">
+        <div style="font-size:56px;margin-bottom:8px;">{% if rc=='high' %}🔴{% elif rc=='mid' %}🟡{% else %}🟢{% endif %}</div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:6px;">AI Risk Prediction</div>
+        <span class="risk-badge {{ rc }}" style="font-size:18px;padding:10px 28px;">{{ result.risk_level|title }}</span>
+        <div style="margin-top:12px;font-size:13px;color:var(--text-muted);">Risk Score: <strong style="color:var(--text);">{{ score }}/15</strong></div>
+      </div>
+      <!-- Score bar -->
+      <div style="margin:16px 0;">
+        <div class="progress-wrap"><div class="progress-fill {{ rc }}" style="width:{{ [score/15*100,100]|min|int }}%;"></div></div>
+      </div>
+      <!-- Factor analysis -->
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px;">What's affecting your score:</div>
+      {% set d = result.data %}
+      {% for check, val, label in [
+        (d.systolic>=140, True, '🔴 Systolic BP critically high (≥140 mmHg)'),
+        (d.systolic>=130 and d.systolic<140, True, '🟡 Systolic BP borderline elevated'),
+        (d.diastolic>=90, True, '🔴 Diastolic BP high (≥90 mmHg)'),
+        (d.bs>=11, True, '🔴 Blood sugar very high (≥11 mmol/L)'),
+        (d.bs>=7.8 and d.bs<11, True, '🟡 Blood sugar mildly elevated'),
+        (d.hemoglobin<9, True, '🔴 Severe anaemia (Hb <9)'),
+        (d.hemoglobin<11 and d.hemoglobin>=9, True, '🟡 Mild anaemia (Hb 9–11)'),
+        (d.swelling==1, True, '🟡 Swelling reported'),
+        (d.headache==1, True, '🟡 Headache reported'),
+        (d.vision_change==1, True, '🔴 Vision changes — seek care'),
+      ] %}
+      {% if check %}<div style="padding:6px 10px;background:rgba(255,255,255,0.04);border-radius:6px;margin-bottom:4px;font-size:12px;">{{ label }}</div>{% endif %}
+      {% endfor %}
+    </div>
+    <div class="card">
+      <div class="card-title">💡 What To Do Now</div>
+      {% if rc=='low' %}
+      <p style="font-size:13px;line-height:1.7;color:var(--text-muted);">✅ Your readings look healthy. Keep monitoring regularly, stay hydrated, eat well, and attend scheduled checkups.</p>
+      {% elif rc=='mid' %}
+      <p style="font-size:13px;line-height:1.7;color:var(--text-muted);">⚠️ Borderline readings detected. Visit your doctor within 3–5 days. Monitor BP twice daily. Reduce sodium, rest on your left side.</p>
+      <a href="{{ url_for('guide') }}" class="btn btn-ghost btn-sm" style="margin-top:10px;color:var(--yellow);border-color:rgba(247,151,30,0.3);">See Full Mid-Risk Guide →</a>
+      {% else %}
+      <p style="font-size:13px;line-height:1.7;color:rgba(245,87,108,0.9);">🚨 High-risk readings. Please visit a hospital or call your doctor <strong>today</strong>. Do not ignore these readings.</p>
+      <a href="{{ url_for('guide') }}" class="btn btn-danger btn-sm" style="margin-top:10px;">See Emergency Guide →</a>
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="card" style="min-height:340px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;">
+      <div style="font-size:64px;margin-bottom:16px;">🤖</div>
+      <div style="font-size:16px;font-weight:600;margin-bottom:8px;">12-Factor AI Ready</div>
+      <div style="font-size:13px;color:var(--text-muted);">Fill in the form and get a<br>comprehensive risk analysis —<br>no clinic visit required.</div>
+    </div>
+    {% endif %}
+
+    {% if history %}
+    <div class="card" style="margin-top:16px;">
+      <div class="card-title">📈 Assessment History</div>
+      {% for h in history[:6] %}
+      {% set hc = h.risk_level.split()[0] %}
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+        <span style="font-size:12px;color:var(--text-muted);">{{ h.assessed_at[:10] }}</span>
+        <span style="font-size:12px;">{{ h.systolic_bp|int }}/{{ h.diastolic_bp|int }} mmHg</span>
+        <span class="risk-badge {{ hc }}" style="font-size:11px;padding:3px 10px;">{{ h.risk_level|title }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

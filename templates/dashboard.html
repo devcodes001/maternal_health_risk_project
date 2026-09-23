@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — MaternalCare AI{% endblock %}
+{% block content %}
+<div class="page-header fade-up">
+  <h1>👋 Hello, {{ session.patient_name }}!</h1>
+  <p>Here's your pregnancy overview for today.</p>
+</div>
+
+<!-- Pregnancy Progress Banner -->
+{% if pregnancy_week is not none %}
+<div class="card fade-up fade-up-1" style="margin-bottom:20px;background:linear-gradient(135deg,rgba(102,126,234,0.12),rgba(118,75,162,0.12));border-color:rgba(102,126,234,0.25);">
+  <div class="flex items-center justify-between" style="flex-wrap:wrap;gap:16px;">
+    <div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:4px;">{{ trimester }}</div>
+      <div style="font-size:32px;font-weight:800;">Week {{ pregnancy_week }}, Day {{ pregnancy_day }}</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-top:4px;">Expected due date: <strong style="color:var(--text);">{{ due_date }}</strong></div>
+    </div>
+    <div style="text-align:right;">
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">Pregnancy progress</div>
+      <div class="progress-wrap" style="width:220px;">
+        {% set pct = [(pregnancy_week / 40 * 100)|int, 100]|min %}
+        <div class="progress-fill {% if pct < 40 %}low{% elif pct < 75 %}mid{% else %}high{% endif %}" style="width:{{ pct }}%;"></div>
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:6px;">{{ pct }}% complete</div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Stats -->
+<div class="grid-4 fade-up fade-up-2" style="margin-bottom:20px;">
+  <div class="stat-card">
+    <span class="stat-icon">🔬</span>
+    <div><div class="stat-value">{{ stats.assessments }}</div><div class="stat-label">Risk Checks</div></div>
+  </div>
+  <div class="stat-card">
+    <span class="stat-icon">📅</span>
+    <div><div class="stat-value">{{ stats.appointments }}</div><div class="stat-label">Appointments</div></div>
+  </div>
+  <div class="stat-card">
+    <span class="stat-icon">📖</span>
+    <div><div class="stat-value">{{ stats.journal }}</div><div class="stat-label">Journal Entries</div></div>
+  </div>
+  <div class="stat-card">
+    <span class="stat-icon">❤️</span>
+    <div>
+      <div class="stat-value" style="font-size:18px;">
+        {% if latest_assessment %}
+          <span class="risk-badge {{ latest_assessment.risk_level.split()[0] }}">{{ latest_assessment.risk_level|title }}</span>
+        {% else %}–{% endif %}
+      </div>
+      <div class="stat-label">Last Risk Level</div>
+    </div>
+  </div>
+</div>
+
+<div class="grid-2 fade-up fade-up-3">
+  <!-- Upcoming Appointments -->
+  <div class="card">
+    <div class="flex items-center justify-between mb-16">
+      <div class="card-title">📅 Upcoming Checkups</div>
+      <a href="{{ url_for('calendar') }}" class="btn btn-ghost btn-sm">View All</a>
+    </div>
+    {% if upcoming %}
+      {% for apt in upcoming %}
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);">
+        <div style="background:linear-gradient(135deg,rgba(102,126,234,0.2),rgba(118,75,162,0.2));border-radius:10px;padding:10px;font-size:20px;">📋</div>
+        <div style="flex:1;">
+          <div style="font-size:14px;font-weight:600;">{{ apt.title }}</div>
+          <div style="font-size:12px;color:var(--text-muted);">{{ apt.date }}{% if apt.time %} at {{ apt.time }}{% endif %}{% if apt.doctor %} · {{ apt.doctor }}{% endif %}</div>
+        </div>
+        <span style="font-size:11px;padding:3px 10px;border-radius:99px;background:rgba(102,126,234,0.15);color:var(--blue);">{{ apt.type }}</span>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state"><div class="empty-icon">📭</div>No upcoming appointments.<br><a href="{{ url_for('calendar') }}" style="color:var(--blue);">Add one</a></div>
+    {% endif %}
+  </div>
+
+  <!-- Recent Journal -->
+  <div class="card">
+    <div class="flex items-center justify-between mb-16">
+      <div class="card-title">📖 Recent Journal Entries</div>
+      <a href="{{ url_for('journal') }}" class="btn btn-ghost btn-sm">View All</a>
+    </div>
+    {% if recent_entries %}
+      {% for entry in recent_entries %}
+      {% set mood_map = {'happy':'😊','anxious':'😰','tired':'😴','excited':'🥰','uncomfortable':'😣','neutral':'😐','grateful':'🙏','pain':'😖'} %}
+      <div style="padding:12px 0;border-bottom:1px solid var(--border);">
+        <div class="flex items-center gap-8" style="margin-bottom:4px;">
+          <span>{{ mood_map.get(entry.mood,'😐') }}</span>
+          <span style="font-size:14px;font-weight:600;">{{ entry.title or 'Journal Entry' }}</span>
+          <span style="margin-left:auto;font-size:11px;color:var(--text-muted);">Wk {{ entry.pregnancy_week }}, Day {{ entry.pregnancy_day }}</span>
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);padding-left:24px;" class="truncate">{{ entry.content }}</div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state"><div class="empty-icon">✍️</div>No entries yet.<br><a href="{{ url_for('journal') }}" style="color:var(--blue);">Write your first entry</a></div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="card fade-up fade-up-4" style="margin-top:20px;">
+  <div class="card-title">⚡ Quick Actions</div>
+  <div class="flex" style="gap:12px;flex-wrap:wrap;margin-top:4px;">
+    <a href="{{ url_for('assessment') }}" class="btn btn-primary"><span>🔬</span> Check Risk Now</a>
+    <a href="{{ url_for('journal') }}"    class="btn btn-ghost"><span>✍️</span> Add Journal Entry</a>
+    <a href="{{ url_for('calendar') }}"   class="btn btn-ghost"><span>📅</span> Schedule Checkup</a>
+    <a href="{{ url_for('guide') }}"      class="btn btn-ghost"><span>💡</span> View Wellness Tips</a>
+    <a href="{{ url_for('report') }}"     class="btn btn-ghost"><span>📊</span> View My Report</a>
+  </div>
+</div>
+{% endblock %}

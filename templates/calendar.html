@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% block title %}Checkup Calendar — MaternalCare AI{% endblock %}
+{% block head %}
+<style>
+  .cal-nav-btn { background:var(--glass-b); border:1px solid var(--border); border-radius:8px; padding:6px 14px; color:var(--text); cursor:pointer; font-size:16px; }
+  .cal-month-label { font-size:18px; font-weight:700; }
+  .apt-type-dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:5px; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-header fade-up">
+  <h1>📅 Checkup Calendar</h1>
+  <p>Schedule and track all your prenatal appointments.</p>
+</div>
+
+<div class="grid-2 fade-up fade-up-1" style="align-items:start;">
+  <!-- Calendar widget -->
+  <div class="card">
+    <div class="cal-header">
+      <button class="cal-nav-btn" id="prevMonth">‹</button>
+      <span class="cal-month-label" id="calMonthLabel"></span>
+      <button class="cal-nav-btn" id="nextMonth">›</button>
+    </div>
+    <div class="cal-grid" id="calGrid">
+      <div class="cal-day-name">Sun</div><div class="cal-day-name">Mon</div>
+      <div class="cal-day-name">Tue</div><div class="cal-day-name">Wed</div>
+      <div class="cal-day-name">Thu</div><div class="cal-day-name">Fri</div>
+      <div class="cal-day-name">Sat</div>
+    </div>
+    <hr class="divider">
+    <!-- Selected day events -->
+    <div id="dayEvents">
+      <div class="empty-state" style="padding:20px;"><div class="empty-icon" style="font-size:32px;">📆</div>Click a date to see appointments</div>
+    </div>
+  </div>
+
+  <!-- Add appointment + list -->
+  <div>
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title">➕ Add Appointment</div>
+      <form id="addAptForm">
+        <div class="form-group">
+          <label>Title *</label>
+          <input type="text" id="aptTitle" class="form-control" placeholder="e.g. 20-week ultrasound" required>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label>Date *</label>
+            <input type="date" id="aptDate" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label>Time</label>
+            <input type="time" id="aptTime" class="form-control">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label>Type</label>
+            <select id="aptType" class="form-control">
+              <option value="routine">Routine Checkup</option>
+              <option value="ultrasound">Ultrasound</option>
+              <option value="blood_test">Blood Test</option>
+              <option value="specialist">Specialist Visit</option>
+              <option value="vaccination">Vaccination</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Doctor</label>
+            <input type="text" id="aptDoctor" class="form-control" placeholder="Dr. Name">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Notes</label>
+          <textarea id="aptNotes" class="form-control" placeholder="Any prep instructions…" style="min-height:60px;"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary w-full">📌 Add Appointment</button>
+      </form>
+    </div>
+
+    <!-- Upcoming list -->
+    <div class="card">
+      <div class="card-title">📋 All Appointments</div>
+      <div id="aptList">
+        {% if appointments %}
+          {% for apt in appointments %}
+          <div class="apt-item" data-id="{{ apt.id }}" style="display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--border);">
+            <div style="flex:1;">
+              <div style="font-size:14px;font-weight:600;{% if apt.is_completed %}text-decoration:line-through;opacity:0.5;{% endif %}">{{ apt.title }}</div>
+              <div style="font-size:12px;color:var(--text-muted);">{{ apt.date }}{% if apt.time %} · {{ apt.time }}{% endif %}{% if apt.doctor %} · {{ apt.doctor }}{% endif %}</div>
+              <span style="font-size:11px;padding:2px 8px;border-radius:99px;background:rgba(102,126,234,0.15);color:var(--blue);margin-top:4px;display:inline-block;">{{ apt.type }}</span>
+            </div>
+            {% if not apt.is_completed %}
+            <button onclick="markDone({{ apt.id }})" class="btn btn-ghost btn-sm" title="Mark done">✓</button>
+            {% else %}
+            <span style="font-size:18px;">✅</span>
+            {% endif %}
+            <button onclick="deleteApt({{ apt.id }})" class="btn btn-ghost btn-sm" title="Delete" style="color:var(--red);">🗑</button>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="empty-state" id="emptyApts"><div class="empty-icon">📭</div>No appointments yet.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const APPOINTMENTS = {{ appointments_json|safe }};
+
+// ── Calendar ──────────────────────────────────────────
+let current = new Date();
+function buildCal() {
+  const y = current.getFullYear(), m = current.getMonth();
+  document.getElementById('calMonthLabel').textContent = current.toLocaleDateString('en-IN',{month:'long',year:'numeric'});
+  const grid = document.getElementById('calGrid');
+  // Remove old day cells (keep 7 header cells)
+  while(grid.children.length > 7) grid.removeChild(grid.lastChild);
+  const first = new Date(y,m,1).getDay();
+  const days  = new Date(y,m+1,0).getDate();
+  const today = new Date();
+  // Event dates set
+  const eventDates = new Set(APPOINTMENTS.map(a=>a.date));
+  for(let i=0;i<first;i++){
+    const c=document.createElement('div'); c.className='cal-cell other-month'; grid.appendChild(c);
+  }
+  for(let d=1;d<=days;d++){
+    const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const c=document.createElement('div');
+    c.className='cal-cell';
+    c.textContent=d;
+    if(d===today.getDate()&&m===today.getMonth()&&y===today.getFullYear()) c.classList.add('today');
+    if(eventDates.has(dateStr)) c.classList.add('has-event');
+    c.addEventListener('click',()=>showDay(dateStr,c));
+    grid.appendChild(c);
+  }
+}
+function showDay(dateStr, cell){
+  document.querySelectorAll('.cal-cell').forEach(c=>c.classList.remove('selected'));
+  cell.classList.add('selected');
+  document.getElementById('aptDate').value=dateStr;
+  const dayApts = APPOINTMENTS.filter(a=>a.date===dateStr);
+  const box = document.getElementById('dayEvents');
+  if(!dayApts.length){ box.innerHTML=`<div class="empty-state" style="padding:16px;"><div style="font-size:24px;">📭</div>No appointments on ${dateStr}</div>`; return; }
+  box.innerHTML = dayApts.map(a=>`
+    <div style="padding:10px 12px;background:var(--glass);border-radius:8px;margin-bottom:8px;border:1px solid var(--border);">
+      <div style="font-size:14px;font-weight:600;">${a.title}</div>
+      <div style="font-size:12px;color:var(--text-muted);">${a.time||''} ${a.doctor?'· '+a.doctor:''}</div>
+    </div>`).join('');
+}
+document.getElementById('prevMonth').onclick=()=>{ current.setMonth(current.getMonth()-1); buildCal(); };
+document.getElementById('nextMonth').onclick=()=>{ current.setMonth(current.getMonth()+1); buildCal(); };
+buildCal();
+
+// ── Add appointment ───────────────────────────────────
+document.getElementById('addAptForm').addEventListener('submit', async function(e){
+  e.preventDefault();
+  const body = {
+    title:  document.getElementById('aptTitle').value,
+    date:   document.getElementById('aptDate').value,
+    time:   document.getElementById('aptTime').value,
+    type:   document.getElementById('aptType').value,
+    doctor: document.getElementById('aptDoctor').value,
+    notes:  document.getElementById('aptNotes').value,
+  };
+  await fetch('/api/appointments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  location.reload();
+});
+
+// ── Mark done ─────────────────────────────────────────
+async function markDone(id){
+  await fetch(`/api/appointments?id=${id}`,{method:'PATCH'});
+  location.reload();
+}
+
+// ── Delete ────────────────────────────────────────────
+async function deleteApt(id){
+  if(!confirm('Delete this appointment?')) return;
+  await fetch(`/api/appointments?id=${id}`,{method:'DELETE'});
+  location.reload();
+}
+</script>
+{% endblock %}

@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+{% block title %}My Pregnancy Report — MaternalCare AI{% endblock %}
+{% block head %}
+<style>
+  .report-section { margin-bottom:28px; }
+  .metric-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:24px; }
+  .metric-box { background:var(--glass); border:1px solid var(--border); border-radius:14px; padding:18px; text-align:center; }
+  .metric-box .val { font-size:28px; font-weight:800; margin-bottom:4px; }
+  .metric-box .lbl { font-size:12px; color:var(--text-muted); }
+  @media print { .no-print{display:none!important} .main-content{margin-left:0} }
+</style>
+{% endblock %}
+{% block content %}
+<div class="flex justify-between items-center fade-up" style="margin-bottom:24px;">
+  <div class="page-header" style="margin-bottom:0;">
+    <h1>📊 My Pregnancy Report</h1>
+    <p>A complete summary of your entire pregnancy journey.</p>
+  </div>
+  <div class="flex gap-8 no-print">
+    <button onclick="window.print()" class="btn btn-ghost">🖨️ Print Report</button>
+    <a href="{{ url_for('dashboard') }}" class="btn btn-primary">🏠 Dashboard</a>
+  </div>
+</div>
+
+<!-- Header -->
+<div class="report-header fade-up fade-up-1">
+  <div style="font-size:56px;margin-bottom:12px;">🤰</div>
+  <div class="report-name">{{ patient.name }}</div>
+  <div class="report-sub">
+    Pregnancy Report &nbsp;·&nbsp;
+    {% if patient.lmp_date %}LMP: {{ patient.lmp_date }}{% endif %}
+    {% if due_date %}&nbsp;·&nbsp; Due Date: {{ due_date }}{% endif %}
+    {% if trimester %}&nbsp;·&nbsp; {{ trimester }}{% endif %}
+  </div>
+  <div style="margin-top:14px;display:flex;flex-wrap:wrap;justify-content:center;gap:8px;">
+    {% if patient.blood_group %}<span class="metric-pill">🩸 {{ patient.blood_group }}</span>{% endif %}
+    {% if patient.doctor_name %}<span class="metric-pill">👩‍⚕️ {{ patient.doctor_name }}</span>{% endif %}
+    {% if patient.hospital %}<span class="metric-pill">🏥 {{ patient.hospital }}</span>{% endif %}
+    {% if patient.phone %}<span class="metric-pill">📱 {{ patient.phone }}</span>{% endif %}
+  </div>
+</div>
+
+<!-- Summary metrics -->
+<div class="metric-grid fade-up fade-up-2">
+  <div class="metric-box">
+    <div class="val" style="color:var(--blue);">{{ assessments|length }}</div>
+    <div class="lbl">Risk Assessments Done</div>
+  </div>
+  <div class="metric-box">
+    <div class="val" style="color:var(--green);">{{ completed_appointments }}</div>
+    <div class="lbl">Appointments Completed</div>
+  </div>
+  <div class="metric-box">
+    <div class="val" style="color:var(--pink);">{{ entries|length }}</div>
+    <div class="lbl">Journal Entries Written</div>
+  </div>
+  <div class="metric-box">
+    <div class="val" style="color:var(--yellow);">{{ total_appointments }}</div>
+    <div class="lbl">Total Appointments</div>
+  </div>
+</div>
+
+<!-- Risk Level History -->
+<div class="report-section fade-up fade-up-2">
+  <div class="card">
+    <div class="card-title" style="font-size:15px;margin-bottom:16px;">📈 Risk Level History</div>
+    {% if assessments %}
+    <!-- Risk count summary -->
+    <div class="flex gap-12" style="margin-bottom:20px;flex-wrap:wrap;">
+      <div style="flex:1;text-align:center;padding:14px;background:rgba(67,233,123,0.1);border-radius:10px;border:1px solid rgba(67,233,123,0.2);">
+        <div style="font-size:24px;font-weight:800;color:var(--green);">{{ risk_counts['low risk'] }}</div>
+        <div style="font-size:12px;color:var(--text-muted);">Low Risk readings</div>
+      </div>
+      <div style="flex:1;text-align:center;padding:14px;background:rgba(247,151,30,0.1);border-radius:10px;border:1px solid rgba(247,151,30,0.2);">
+        <div style="font-size:24px;font-weight:800;color:var(--yellow);">{{ risk_counts['mid risk'] }}</div>
+        <div style="font-size:12px;color:var(--text-muted);">Mid Risk readings</div>
+      </div>
+      <div style="flex:1;text-align:center;padding:14px;background:rgba(245,87,108,0.1);border-radius:10px;border:1px solid rgba(245,87,108,0.2);">
+        <div style="font-size:24px;font-weight:800;color:var(--red);">{{ risk_counts['high risk'] }}</div>
+        <div style="font-size:12px;color:var(--text-muted);">High Risk readings</div>
+      </div>
+    </div>
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead>
+          <tr style="color:var(--text-muted);border-bottom:1px solid var(--border);">
+            <th style="text-align:left;padding:8px 10px;">#</th>
+            <th style="text-align:left;padding:8px 10px;">Date</th>
+            <th style="text-align:left;padding:8px 10px;">BP (Sys/Dia)</th>
+            <th style="text-align:left;padding:8px 10px;">Blood Sugar</th>
+            <th style="text-align:left;padding:8px 10px;">Temp</th>
+            <th style="text-align:left;padding:8px 10px;">Heart Rate</th>
+            <th style="text-align:left;padding:8px 10px;">Risk</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in assessments %}
+          {% set ac = a.risk_level.split()[0] %}
+          <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+            <td style="padding:9px 10px;color:var(--text-muted);">{{ loop.index }}</td>
+            <td style="padding:9px 10px;color:var(--text-muted);">{{ a.assessed_at[:10] }}</td>
+            <td style="padding:9px 10px;">{{ a.systolic_bp|int }} / {{ a.diastolic_bp|int }}</td>
+            <td style="padding:9px 10px;">{{ a.bs }} mmol/L</td>
+            <td style="padding:9px 10px;">{{ a.body_temp }} °F</td>
+            <td style="padding:9px 10px;">{{ a.heart_rate|int }} bpm</td>
+            <td style="padding:9px 10px;"><span class="risk-badge {{ ac }}" style="font-size:11px;padding:3px 10px;">{{ a.risk_level|title }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state"><div class="empty-icon">🔬</div>No assessments recorded yet.</div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Problems & Symptoms Summary -->
+<div class="report-section fade-up fade-up-3">
+  <div class="card">
+    <div class="card-title" style="font-size:15px;margin-bottom:16px;">🩺 Problems & Symptoms Tracked</div>
+    {% if symptom_counts %}
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px;">
+      {% for sym, count in symptom_counts.items() %}
+      <div style="padding:8px 16px;background:rgba(245,87,108,0.1);border:1px solid rgba(245,87,108,0.2);border-radius:99px;font-size:13px;">
+        <span style="color:var(--red);font-weight:600;">{{ sym }}</span>
+        <span style="color:var(--text-muted);margin-left:6px;">×{{ count }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% if symptom_counts %}
+    {% set top_sym = symptom_counts|list|first %}
+    <div style="padding:12px 16px;background:rgba(247,151,30,0.08);border-radius:10px;border:1px solid rgba(247,151,30,0.2);font-size:13px;">
+      💡 Most frequent symptom: <strong>{{ top_sym }}</strong> (reported {{ symptom_counts[top_sym] }} times)
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="empty-state"><div class="empty-icon">✅</div>No symptoms logged in your journal.</div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Appointment Summary -->
+<div class="report-section fade-up fade-up-3">
+  <div class="card">
+    <div class="card-title" style="font-size:15px;margin-bottom:16px;">📅 Appointment Summary</div>
+    {% if appointments %}
+    <div class="flex gap-12" style="margin-bottom:20px;flex-wrap:wrap;">
+      <div style="flex:1;padding:14px;background:rgba(67,233,123,0.08);border-radius:10px;border:1px solid rgba(67,233,123,0.2);text-align:center;">
+        <div style="font-size:24px;font-weight:800;color:var(--green);">{{ completed_appointments }}</div>
+        <div style="font-size:12px;color:var(--text-muted);">Completed</div>
+      </div>
+      <div style="flex:1;padding:14px;background:rgba(247,151,30,0.08);border-radius:10px;border:1px solid rgba(247,151,30,0.2);text-align:center;">
+        <div style="font-size:24px;font-weight:800;color:var(--yellow);">{{ total_appointments - completed_appointments }}</div>
+        <div style="font-size:12px;color:var(--text-muted);">Pending</div>
+      </div>
+      <div style="flex:1;padding:14px;background:rgba(102,126,234,0.08);border-radius:10px;border:1px solid rgba(102,126,234,0.2);text-align:center;">
+        <div style="font-size:24px;font-weight:800;color:var(--blue);">{{ total_appointments }}</div>
+        <div style="font-size:12px;color:var(--text-muted);">Total</div>
+      </div>
+    </div>
+    {% for apt in appointments %}
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">
+      <span>{% if apt.is_completed %}✅{% else %}🔲{% endif %}</span>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:600;">{{ apt.title }}</div>
+        <div style="font-size:12px;color:var(--text-muted);">{{ apt.date }}{% if apt.time %} · {{ apt.time }}{% endif %}{% if apt.doctor %} · {{ apt.doctor }}{% endif %}</div>
+      </div>
+      <span style="font-size:11px;padding:3px 10px;border-radius:99px;background:rgba(102,126,234,0.12);color:var(--blue);">{{ apt.type }}</span>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="empty-state"><div class="empty-icon">📭</div>No appointments recorded.</div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Journal Highlights -->
+<div class="report-section fade-up fade-up-4">
+  <div class="card">
+    <div class="card-title" style="font-size:15px;margin-bottom:16px;">📖 Pregnancy Journal — Full Timeline</div>
+    {% if entries %}
+    <div class="timeline">
+      {% for entry in entries %}
+      {% set mood_map = {'happy':'😊','anxious':'😰','tired':'😴','excited':'🥰','uncomfortable':'😣','neutral':'😐','grateful':'🙏','pain':'😖'} %}
+      <div class="tl-item">
+        <div class="tl-dot journal"></div>
+        <div class="tl-date">
+          {{ entry.entry_date }}
+          {% if entry.pregnancy_week is not none %}· <strong>Week {{ entry.pregnancy_week }}, Day {{ entry.pregnancy_day }}</strong>{% endif %}
+        </div>
+        <div class="tl-content">
+          <div class="tl-title">{{ mood_map.get(entry.mood,'😐') }} {{ entry.title or 'Journal Entry' }}</div>
+          <div class="tl-body" style="margin-top:6px;">{{ entry.content }}</div>
+          {% if entry.baby_movements and entry.baby_movements > 0 %}
+          <div style="margin-top:8px;font-size:12px;color:var(--pink);">👶 {{ entry.baby_movements }} baby movements noted</div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state"><div class="empty-icon">📝</div>No journal entries yet.</div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Overall Assessment -->
+<div class="report-section fade-up fade-up-4">
+  <div class="card" style="background:linear-gradient(135deg,rgba(102,126,234,0.1),rgba(118,75,162,0.1));border-color:rgba(102,126,234,0.25);">
+    <div class="card-title" style="font-size:15px;margin-bottom:16px;">🏁 Overall Pregnancy Summary</div>
+    <div style="font-size:14px;line-height:1.8;color:var(--text-muted);">
+      <strong style="color:var(--text);">{{ patient.name }}</strong> completed <strong style="color:var(--text);">{{ assessments|length }}</strong> health assessments
+      {% if assessments %}with a dominant risk level of
+      <strong style="color:{% if risk_counts['high risk'] > risk_counts['low risk'] and risk_counts['high risk'] > risk_counts['mid risk'] %}var(--red){% elif risk_counts['mid risk'] >= risk_counts['low risk'] %}var(--yellow){% else %}var(--green){% endif %};">
+        {% if risk_counts['high risk'] > risk_counts['low risk'] and risk_counts['high risk'] > risk_counts['mid risk'] %}High Risk{% elif risk_counts['mid risk'] >= risk_counts['low risk'] %}Mid Risk{% else %}Low Risk{% endif %}
+      </strong>{% endif %}.
+      She attended <strong style="color:var(--text);">{{ completed_appointments }}</strong> of
+      <strong style="color:var(--text);">{{ total_appointments }}</strong> scheduled appointments, and recorded
+      <strong style="color:var(--text);">{{ entries|length }}</strong> journal entries throughout her journey.
+      {% if symptom_counts %}
+      The most commonly reported symptom was <strong style="color:var(--text);">{{ symptom_counts|list|first }}</strong>.
+      {% endif %}
+    </div>
+    <div style="margin-top:16px;padding:14px;background:rgba(67,233,123,0.08);border-radius:10px;border:1px solid rgba(67,233,123,0.2);font-size:13px;color:var(--green);">
+      ✨ Every entry in this report is a testament to your commitment to your health and your baby's well-being.
+    </div>
+  </div>
+</div>
+
+<div class="no-print" style="text-align:center;margin-top:8px;">
+  <button onclick="window.print()" class="btn btn-primary">🖨️ Print / Save as PDF</button>
+</div>
+{% endblock %}
