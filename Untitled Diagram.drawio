@@ -1,0 +1,40 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Page-1" id="6Y5tTWzQ3mGJUDQksj1c">
+    <mxGraphModel dx="2241" dy="1351" grid="0" gridSize="10" guides="0" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="850" pageHeight="1100" background="light-dark(#FFFFFF,#121212)" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="cNCE4LyFIhF_scpUt3uz-1" parent="1" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.annotation_1;align=left;pointerEvents=1;fillColor=light-dark(#FFFFFF,#FFFFFF);" value="" vertex="1">
+          <mxGeometry height="100" width="220" x="1356" y="592" as="geometry" />
+        </mxCell>
+        <mxCell id="cNCE4LyFIhF_scpUt3uz-3" parent="1" style="verticalLabelPosition=bottom;verticalAlign=top;html=1;shape=mxgraph.flowchart.on-page_reference;labelPerimeter=1;" value="" vertex="1">
+          <mxGeometry height="140" width="150" x="620" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="QYOpviDKDjxC_ErDuLlZ-3" edge="1" parent="1" source="cNCE4LyFIhF_scpUt3uz-7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;defaultLabelBackgroundColor=page;exitX=0.972;exitY=0.718;exitDx=0;exitDy=0;exitPerimeter=0;">
+          <mxGeometry relative="1" x="-0.3338" as="geometry">
+            <mxPoint x="772" y="1117.42" as="sourcePoint" />
+            <mxPoint x="1439" y="702.91" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cNCE4LyFIhF_scpUt3uz-4" parent="1" style="verticalLabelPosition=bottom;verticalAlign=top;html=1;shape=mxgraph.flowchart.on-page_reference;labelPerimeter=1;" value="" vertex="1">
+          <mxGeometry height="140" width="150" x="620" y="450" as="geometry" />
+        </mxCell>
+        <mxCell id="cNCE4LyFIhF_scpUt3uz-5" parent="1" style="verticalLabelPosition=bottom;verticalAlign=top;html=1;shape=mxgraph.flowchart.on-page_reference;labelPerimeter=1;" value="" vertex="1">
+          <mxGeometry height="140" width="150" x="620" y="630" as="geometry" />
+        </mxCell>
+        <mxCell id="cNCE4LyFIhF_scpUt3uz-6" parent="1" style="verticalLabelPosition=bottom;verticalAlign=top;html=1;shape=mxgraph.flowchart.on-page_reference;labelPerimeter=1;" value="" vertex="1">
+          <mxGeometry height="140" width="150" x="620" y="831" as="geometry" />
+        </mxCell>
+        <mxCell id="cNCE4LyFIhF_scpUt3uz-7" parent="1" style="verticalLabelPosition=bottom;verticalAlign=top;html=1;shape=mxgraph.flowchart.on-page_reference;labelPerimeter=1;" value="" vertex="1">
+          <mxGeometry height="140" width="150" x="620" y="1031" as="geometry" />
+        </mxCell>
+        <mxCell id="QYOpviDKDjxC_ErDuLlZ-1" parent="1" style="verticalLabelPosition=bottom;verticalAlign=top;html=1;shape=mxgraph.flowchart.on-page_reference;labelPerimeter=1;" value="" vertex="1">
+          <mxGeometry height="140" width="150" x="625" y="79" as="geometry" />
+        </mxCell>
+        <mxCell id="QYOpviDKDjxC_ErDuLlZ-4" edge="1" parent="1" source="cNCE4LyFIhF_scpUt3uz-7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.988;exitY=0.333;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.165;entryY=1.05;entryDx=0;entryDy=0;entryPerimeter=0;defaultLabelBackgroundColor=page;" target="cNCE4LyFIhF_scpUt3uz-1">
+          <mxGeometry relative="1" x="0.0055" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
