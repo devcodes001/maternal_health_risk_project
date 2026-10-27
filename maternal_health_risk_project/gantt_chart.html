@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MaternalCare AI — Project Gantt Chart</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: #EEF2FF;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 32px 16px;
+    }
+
+    .page {
+      width: 1240px;
+      background: #fff;
+      border-radius: 24px;
+      box-shadow: 0 12px 56px rgba(30,58,138,.13);
+      overflow: hidden;
+    }
+
+    /* HEADER */
+    .chart-header {
+      background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 60%, #E0F2FE 100%);
+      padding: 24px 40px 20px;
+      border-bottom: 2px solid #BFDBFE;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .header-icon { font-size: 3rem; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,.12)); }
+    .header-text { flex: 1; }
+    .header-title { font-size: 2rem; font-weight: 900; color: #1E3A8A; letter-spacing: -0.03em; }
+    .header-subtitle { font-size: 1.05rem; font-weight: 700; color: #0369A1; margin-top: 2px; }
+    .header-meta { font-size: 0.82rem; color: #64748B; margin-top: 6px; display: flex; align-items: center; gap: 14px; }
+    .badge-pill { display: inline-flex; align-items: center; gap: 5px; background: #1E3A8A; color: #fff; font-size: 0.74rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
+    .badge-progress { display: inline-flex; align-items: center; gap: 5px; background: #22C55E; color: #fff; font-size: 0.74rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
+
+    /* GANTT WRAPPER */
+    .gantt-wrap { padding: 28px 40px 20px; }
+
+    /* MONTH HEADER */
+    .month-header-row { display: flex; margin-left: calc(42px + 228px + 72px + 8px); margin-bottom: 2px; }
+    .mh { flex: 1; text-align: center; font-size: 0.8rem; font-weight: 800; color: #fff; padding: 5px 0; border-radius: 8px 8px 0 0; letter-spacing: 0.04em; }
+    .mh + .mh { margin-left: 2px; }
+    .mh-jul  { background: linear-gradient(135deg, #3B82F6, #1D4ED8); flex: 4; }
+    .mh-aug  { background: linear-gradient(135deg, #8B5CF6, #6D28D9); flex: 4; }
+    .mh-sep  { background: linear-gradient(135deg, #EC4899, #BE185D); flex: 4; }
+    .mh-oct  { background: linear-gradient(135deg, #F97316, #C2410C); flex: 2; }
+
+    /* COLUMN LABELS */
+    .col-labels-row { display: flex; align-items: center; background: #F1F5F9; padding: 5px 0; margin-bottom: 3px; border-top: 2px solid #E2E8F0; }
+    .lbl-id   { width: 42px;  text-align: center; font-size: 0.7rem; font-weight: 700; color: #475569; text-transform: uppercase; }
+    .lbl-name { width: 228px; padding-left: 8px;  font-size: 0.7rem; font-weight: 700; color: #475569; text-transform: uppercase; }
+    .lbl-dur  { width: 72px;  text-align: center; font-size: 0.7rem; font-weight: 700; color: #475569; text-transform: uppercase; }
+    .lbl-weeks { flex: 1; display: flex; }
+    .wk-lbl { flex: 1; text-align: center; font-size: 0.68rem; font-weight: 700; color: #64748B; }
+
+    /* TASK ROWS */
+    .task-row { display: flex; align-items: center; min-height: 48px; border-bottom: 1px solid #F1F5F9; transition: background 0.15s; }
+    .task-row:hover { background: #FAFBFF; }
+    .task-row:nth-child(odd) { background: #FAFCFF; }
+    .task-row:nth-child(odd):hover { background: #EFF6FF; }
+
+    .cell-id { width: 42px; text-align: center; }
+    .id-badge { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 8px; font-size: 0.75rem; font-weight: 800; color: #fff; }
+    .cell-name { width: 228px; padding: 0 6px; }
+    .task-name { font-size: 0.82rem; font-weight: 600; color: #1E293B; line-height: 1.35; }
+    .task-feat { font-size: 0.66rem; font-weight: 500; color: #94A3B8; margin-top: 1px; }
+    .cell-dur  { width: 72px; text-align: center; font-size: 0.78rem; font-weight: 600; color: #64748B; }
+
+    /* BAR AREA */
+    .bar-area { flex: 1; position: relative; height: 48px; }
+    .week-lines { position: absolute; top: 0; bottom: 0; left: 0; right: 0; display: flex; pointer-events: none; }
+    .wl { flex: 1; border-right: 1px solid #EEF2FF; }
+
+    .bar { position: absolute; height: 22px; border-radius: 7px; top: 50%; transform: translateY(-50%); z-index: 2; box-shadow: 0 2px 6px rgba(0,0,0,.12); display: flex; align-items: center; padding: 0 8px; overflow: hidden; }
+    .bar-completed  { background: linear-gradient(90deg, #16A34A, #22C55E); }
+    .bar-inprogress { background: linear-gradient(90deg, #D97706, #F59E0B); box-shadow: 0 2px 10px rgba(245,158,11,.25); }
+    .bar-notstarted { background: #CBD5E1; box-shadow: none; }
+
+    .bar-inprogress::after { content: ''; position: absolute; top: 0; left: -60%; width: 60%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent); animation: shimmer 2s infinite; border-radius: 7px; }
+    @keyframes shimmer { to { left: 130%; } }
+
+    /* TODAY LINE */
+    .today-col { position: absolute; top: 0; bottom: 0; width: 2.5px; background: #EF4444; z-index: 10; box-shadow: 0 0 6px rgba(239,68,68,.5); }
+    .today-label { position: absolute; top: -22px; left: 50%; transform: translateX(-50%); background: #EF4444; color: #fff; font-size: 0.6rem; font-weight: 800; padding: 2px 5px; border-radius: 4px; white-space: nowrap; }
+
+    /* BOTTOM */
+    .bottom-section { display: flex; gap: 16px; padding: 0 40px 28px; align-items: flex-start; }
+    .milestones-card { flex: 1; background: #FAFBFF; border: 1.5px solid #E0E7FF; border-radius: 14px; padding: 16px 20px; }
+    .section-heading { font-size: 0.75rem; font-weight: 800; color: #1E293B; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 14px; }
+    .milestones-row { display: flex; gap: 16px; flex-wrap: wrap; }
+    .ms-item { display: flex; align-items: center; gap: 9px; }
+    .ms-diamond { width: 32px; height: 32px; border-radius: 6px; transform: rotate(45deg); display: flex; align-items: center; justify-content: center; font-size: 0.62rem; font-weight: 900; color: #fff; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,.15); }
+    .ms-inner { transform: rotate(-45deg); }
+    .ms-text { font-size: 0.7rem; color: #475569; line-height: 1.4; }
+    .ms-text strong { display: block; color: #1E293B; font-weight: 700; font-size: 0.72rem; }
+
+    /* LEGEND */
+    .legend-card { background: #FAFBFF; border: 1.5px solid #E0E7FF; border-radius: 14px; padding: 16px 24px; min-width: 240px; }
+    .legend-items { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+    .legend-item { display: flex; align-items: center; gap: 10px; font-size: 0.8rem; font-weight: 600; color: #334155; }
+    .legend-bar { width: 44px; height: 16px; border-radius: 5px; flex-shrink: 0; }
+    .lb-c  { background: linear-gradient(90deg, #16A34A, #22C55E); }
+    .lb-ip { background: linear-gradient(90deg, #D97706, #F59E0B); }
+    .lb-ns { background: #CBD5E1; }
+
+    /* PROGRESS STRIP */
+    .progress-strip { height: 6px; background: #E2E8F0; position: relative; overflow: hidden; }
+    .progress-fill { height: 100%; width: 71.43%; background: linear-gradient(90deg, #1D4ED8, #22C55E, #F59E0B); border-radius: 0 4px 4px 0; }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <div class="progress-strip"><div class="progress-fill"></div></div>
+
+  <!-- HEADER -->
+  <div class="chart-header">
+    <div class="header-icon">🩺</div>
+    <div class="header-text">
+      <div class="header-title">Gantt Chart</div>
+      <div class="header-subtitle">MaternalCare AI — Maternal Health Risk Prediction &amp; Wellness System</div>
+      <div class="header-meta">
+        <span>Project Timeline: July 2026 – October 2026</span>
+        <span class="badge-pill">📅 14 Weeks Total</span>
+        <span class="badge-progress">✅ 10 Weeks Completed</span>
+        <span style="margin-left:auto; font-weight:700; color:#1E3A8A;">Overall Progress: 71%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- GANTT -->
+  <div class="gantt-wrap">
+    <div class="month-header-row">
+      <div class="mh mh-jul">July 2026</div>
+      <div class="mh mh-aug">August 2026</div>
+      <div class="mh mh-sep">September 2026</div>
+      <div class="mh mh-oct">October 2026</div>
+    </div>
+    <div class="col-labels-row">
+      <div class="lbl-id">ID</div>
+      <div class="lbl-name">Task / Activity</div>
+      <div class="lbl-dur">Duration</div>
+      <div class="lbl-weeks" id="week-labels"></div>
+    </div>
+    <div id="task-rows-container" style="position:relative;"></div>
+  </div>
+
+  <!-- BOTTOM -->
+  <div class="bottom-section">
+    <div class="milestones-card">
+      <div class="section-heading">🏁 Key Milestones</div>
+      <div class="milestones-row" id="milestones-row"></div>
+    </div>
+    <div class="legend-card">
+      <div class="section-heading">📌 Task Status Legend</div>
+      <div class="legend-items">
+        <div class="legend-item"><div class="legend-bar lb-c"></div>Completed</div>
+        <div class="legend-item"><div class="legend-bar lb-ip"></div>In Progress</div>
+        <div class="legend-item"><div class="legend-bar lb-ns"></div>Not Started</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const TOTAL_WEEKS = 14;
+const COMPLETED_WEEKS = 10;
+
+const idColors = [
+  '#3B82F6','#6366F1','#8B5CF6','#EC4899',
+  '#EF4444','#F97316','#EAB308','#22C55E',
+  '#14B8A6','#0EA5E9'
+];
+
+const tasks = [
+  { id:1,  name:"Literature Review & Problem Definition",    feat:"Problem scoping, academic papers, UCI dataset study",          dur:"2 Wks", start:1,  end:2,  status:"completed"  },
+  { id:2,  name:"Requirement Analysis & System Design",      feat:"Use-case diagrams, feature list, architecture blueprint",      dur:"3 Wks", start:2,  end:4,  status:"completed"  },
+  { id:3,  name:"Database Design & Flask/SQLite Setup",      feat:"Schema design, Flask app skeleton, routing, auth",            dur:"3 Wks", start:3,  end:5,  status:"completed"  },
+  { id:4,  name:"ML Model Development (Risk Prediction)",    feat:"Feature engineering, SMOTE, 7-model benchmark, tuning",       dur:"4 Wks", start:5,  end:8,  status:"completed"  },
+  { id:5,  name:"Pregnancy Tracking & Health Monitoring",    feat:"Week/trimester/EDD calc, symptom log, vitals tracker",        dur:"3 Wks", start:6,  end:8,  status:"completed"  },
+  { id:6,  name:"Medication Reminders & Appointment Mgmt",   feat:"Med scheduler, reminder engine, visit & scan tracker",        dur:"3 Wks", start:7,  end:9,  status:"completed"  },
+  { id:7,  name:"Pregnancy Journal & Fetal Kick Counter",    feat:"Mood journal, baby-kick logger, water & diet tracker",        dur:"2 Wks", start:9,  end:10, status:"completed"  },
+  { id:8,  name:"Clinic Records, Reports & PHR Module",      feat:"Prescription store, PDF report generation, health record",    dur:"2 Wks", start:10, end:11, status:"inprogress" },
+  { id:9,  name:"Integration, Testing & Security",           feat:"End-to-end testing, security review, performance fixes",      dur:"3 Wks", start:11, end:13, status:"notstarted" },
+  { id:10, name:"Documentation & Final Presentation",        feat:"README, slides, demo video, final submission",                dur:"2 Wks", start:13, end:14, status:"notstarted" }
+];
+
+const milestones = [
+  { label:"M1", title:"Zeroth Review",   desc:"Literature & Requirements\n(End of Jul — Wk 2)",   color:"#3B82F6" },
+  { label:"M2", title:"Design Complete", desc:"Architecture Finalised\n(End of Jul — Wk 4)",       color:"#8B5CF6" },
+  { label:"M3", title:"ML Model Ready",  desc:"Model Trained & Evaluated\n(End of Aug — Wk 8)",    color:"#EC4899" },
+  { label:"M4", title:"50% Review",      desc:"Core Features Integrated\n(Sep — Wk 10)",           color:"#F97316" },
+  { label:"M5", title:"Final Demo",      desc:"Complete System Delivered\n(End Oct — Wk 14)",      color:"#EF4444" }
+];
+
+function pct(w) { return (w / TOTAL_WEEKS) * 100; }
+function statusClass(s) {
+  if (s === 'completed')  return 'bar-completed';
+  if (s === 'inprogress') return 'bar-inprogress';
+  return 'bar-notstarted';
+}
+
+// Week labels
+const wlContainer = document.getElementById('week-labels');
+for (let w = 1; w <= TOTAL_WEEKS; w++) {
+  const d = document.createElement('div');
+  d.className = 'wk-lbl';
+  d.textContent = 'W' + w;
+  wlContainer.appendChild(d);
+}
+
+// Task rows
+const container = document.getElementById('task-rows-container');
+tasks.forEach((t, i) => {
+  const row = document.createElement('div');
+  row.className = 'task-row';
+
+  row.innerHTML = `
+    <div class="cell-id">
+      <span class="id-badge" style="background:${idColors[i]}">${t.id}</span>
+    </div>
+    <div class="cell-name">
+      <div class="task-name">${t.name}</div>
+      <div class="task-feat">${t.feat}</div>
+    </div>
+    <div class="cell-dur">${t.dur}</div>
+  `;
+
+  const barArea = document.createElement('div');
+  barArea.className = 'bar-area';
+
+  // Grid lines
+  const lines = document.createElement('div');
+  lines.className = 'week-lines';
+  for (let w = 0; w < TOTAL_WEEKS; w++) {
+    const l = document.createElement('div');
+    l.className = 'wl';
+    if (w === 10) l.style.background = 'rgba(239,68,68,.04)';
+    lines.appendChild(l);
+  }
+  barArea.appendChild(lines);
+
+  // Bar
+  const bar = document.createElement('div');
+  bar.className = `bar ${statusClass(t.status)}`;
+  bar.style.left  = pct(t.start - 1) + '%';
+  bar.style.width = pct(t.end - t.start + 1) + '%';
+  barArea.appendChild(bar);
+
+  // Today line
+  const todayLine = document.createElement('div');
+  todayLine.className = 'today-col';
+  todayLine.style.left = pct(COMPLETED_WEEKS) + '%';
+  if (i === 0) todayLine.innerHTML = '<div class="today-label">Today ▼</div>';
+  barArea.appendChild(todayLine);
+
+  row.appendChild(barArea);
+  container.appendChild(row);
+});
+
+// Milestones
+const msRow = document.getElementById('milestones-row');
+milestones.forEach(m => {
+  const item = document.createElement('div');
+  item.className = 'ms-item';
+  item.innerHTML = `
+    <div class="ms-diamond" style="background:${m.color}">
+      <span class="ms-inner">${m.label}</span>
+    </div>
+    <div class="ms-text">
+      <strong>${m.title}</strong>
+      ${m.desc.replace('\n','<br>')}
+    </div>`;
+  msRow.appendChild(item);
+});
+</script>
+</body>
+</html>

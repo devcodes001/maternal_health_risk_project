@@ -1,0 +1,43 @@
+{
+  "cv_results": {
+    "LogisticRegression": {
+      "mean_f1_macro": 0.6332676141330728,
+      "std_f1_macro": 0.026594439387315767
+    },
+    "DecisionTree": {
+      "mean_f1_macro": 0.55894411708803,
+      "std_f1_macro": 0.014713419651500102
+    },
+    "RandomForest": {
+      "mean_f1_macro": 0.6198097107356122,
+      "std_f1_macro": 0.011165864408368645
+    },
+    "SVM": {
+      "mean_f1_macro": 0.6067701051628747,
+      "std_f1_macro": 0.01800431572306879
+    },
+    "KNN": {
+      "mean_f1_macro": 0.5786837795993354,
+      "std_f1_macro": 0.021809837645601664
+    },
+    "NaiveBayes": {
+      "mean_f1_macro": 0.609708717776313,
+      "std_f1_macro": 0.026321428183862974
+    },
+    "XGBoost": {
+      "mean_f1_macro": 0.6311237550897028,
+      "std_f1_macro": 0.03177562879485398
+    }
+  },
+  "random_forest_test": {
+    "accuracy": 0.6650246305418719,
+    "macro_f1": 0.6576685921983514,
+    "macro_auc": 0.8382306875210007
+  },
+  "stacking_test": {
+    "accuracy": 0.645320197044335,
+    "macro_f1": 0.627360066833751,
+    "macro_auc": 0.8358255021190345
+  },
+  "final_model": "Tuned Random Forest"
+}
